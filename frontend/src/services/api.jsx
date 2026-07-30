@@ -1,15 +1,16 @@
+// src/services/api.js
 import axios from 'axios';
 
-// Create axios instance with base URL
-const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+const api = axios.create({
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true
 });
 
-// Add token to requests if it exists
-API.interceptors.request.use(
+// Request interceptor to add token
+api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -22,71 +23,75 @@ API.interceptors.request.use(
   }
 );
 
-// Handle response errors
-API.interceptors.response.use(
+// Response interceptor for error handling
+api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('userRole');
       window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
-// Auth Services
-export const authService = {
-  // Register user
-  register: async (userData) => {
-    try {
-      const response = await API.post('/auth/register', userData);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Registration failed' };
-    }
-  },
+// 👇 Sirf ye add karo
+export const adminAPI = {
+  // Dashboard
+  getStats: () => api.get('/admin/dashboard/stats'),
+getActivities: () => api.get('/admin/dashboard/recent-activity'),
+  getSystemHealth: () => api.get('/admin/system/health'),
 
-  // Login user
-  login: async (credentials) => {
-    try {
-      const response = await API.post('/auth/login', credentials);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Login failed' };
-    }
-  },
+  // Doctors
+  getDoctors: (params) => api.get('/admin/doctors', { params }),
+  getDoctor: (id) => api.get(`/admin/doctors/${id}`),
+  createDoctor: (data) => api.post('/admin/doctors', data),
+  updateDoctor: (id, data) => api.put(`/admin/doctors/${id}`, data),
+  deleteDoctor: (id) => api.delete(`/admin/doctors/${id}`),
 
-  // Verify token
-  verifyToken: async () => {
-    try {
-      const response = await API.post('/auth/verify');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Token verification failed' };
-    }
-  },
+  // Patients
+  getPatients: (params) => api.get('/admin/patients', { params }),
+  getPatient: (id) => api.get(`/admin/patients/${id}`),
+  createPatient: (data) => api.post('/admin/patients', data),
+  updatePatient: (id, data) => api.put(`/admin/patients/${id}`, data),
+  deletePatient: (id) => api.delete(`/admin/patients/${id}`),
 
-  // Get current user
-  getCurrentUser: async () => {
-    try {
-      const response = await API.get('/auth/me');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Failed to get user data' };
-    }
-  },
+  // Appointments
+  getAppointments: (params) => api.get('/admin/appointments', { params }),
+  getAppointment: (id) => api.get(`/admin/appointments/${id}`),
+  createAppointment: (data) => api.post('/admin/appointments', data),
+  updateAppointment: (id, data) => api.put(`/admin/appointments/${id}`, data),
+  deleteAppointment: (id) => api.delete(`/admin/appointments/${id}`),
+  updateStatus: (id, status) => api.patch(`/admin/appointments/${id}/status`, { status }),
 
-  // Logout
-  logout: async () => {
-    try {
-      const response = await API.post('/auth/logout');
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Logout failed' };
-    }
-  },
+  // Reports
+  getReports: () => api.get('/admin/reports'),
+  generateReport: (data) => api.post('/admin/reports/generate', data),
+  exportData: (type) => api.get(`/admin/reports/export/${type}`),
+
+  // Settings
+  getSettings: () => api.get('/admin/settings'),
+  updateSettings: (data) => api.put('/admin/settings', data),
 };
 
-export default API;
+export const patientAPI = {
+  // Dashboard
+  getDashboard: () => api.get("/patient/dashboard"),
+
+  // Doctors
+  getDoctors: (params) => api.get("/patients/doctors", { params }),
+getDoctor: (id) => api.get(`/patients/doctors/${id}`),
+
+  // Appointments
+  getAppointments: () => api.get("/patient/appointments"),
+  bookAppointment: (data) => api.post("/patient/appointments", data),
+  cancelAppointment: (id) =>
+    api.put(`/patient/appointments/${id}/cancel`),
+
+  // Medical History
+  getMedicalHistory: () => api.get("/patient/medical-history"),
+};
+
+export default api;

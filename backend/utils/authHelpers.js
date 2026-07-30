@@ -1,60 +1,107 @@
+// utils/authHelpers.js
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
+import bcrypt from 'bcryptjs';
+import User from '../models/User.js';
+import Admin from '../models/Admin.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-// Generate JWT token
-export const generateToken = (userId, role) => {
+// Generate JWT Token
+export const generateToken = (userId) => {
   return jwt.sign(
-    { userId, role }, 
-    JWT_SECRET, 
-    { expiresIn: '7d' }
+    { userId },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE || '7d' }
   );
 };
 
-// Send password reset email
-export const sendResetEmail = async (email, resetToken) => {
+// Hash password
+export const hashPassword = async (password) => {
+  return await bcrypt.hash(password, 12);
+};
+
+// Compare password
+export const comparePassword = async (password, hashedPassword) => {
+  return await bcrypt.compare(password, hashedPassword);
+};
+
+export const setupInitialAdmin = async () => {
   try {
-    // For now, just log the reset link
-    console.log(`Password reset link for ${email}: http://localhost:3000/reset-password?token=${resetToken}`);
-    
-    // If you have email service configured:
-    /*
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-    });
+    console.log("🔍 Checking for existing admin...");
 
-    const resetUrl = `http://localhost:3000/reset-password?token=${resetToken}`;
+    const adminExists = await User.findOne({ role: "admin" });
 
-    await transporter.sendMail({
-      to: email,
-      subject: 'Password Reset Request',
-      html: `
-        <h1>Password Reset</h1>
-        <p>You requested a password reset. Click the link below to reset your password:</p>
-        <a href="${resetUrl}">${resetUrl}</a>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      `,
-    });
-    */
-    
-    return true;
+    console.log("Existing Admin:", adminExists);
+
+    if (!adminExists) {
+      console.log("✅ No admin found. Creating new admin...");
+
+      const adminUser = new User({
+        fullName: "System Administrator",
+        email: process.env.ADMIN_EMAIL,
+        password: process.env.ADMIN_PASSWORD,
+        phoneNumber: "1234567890",
+        role: "admin",
+        isActive: true,
+        isEmailVerified: true,
+      });
+
+      await adminUser.save();
+
+      const admin = new Admin({
+        user: adminUser._id,
+        isSuperAdmin: true,
+        permissions: [
+          "manage_users",
+          "manage_doctors",
+          "manage_patients",
+          "manage_appointments",
+          "view_reports",
+          "manage_system",
+          "manage_billing",
+          "manage_medicines",
+        ],
+      });
+
+      await admin.save();
+
+      console.log("✅ Default admin created successfully");
+      console.log("📧 Email:", adminUser.email);
+    } else {
+      console.log("⚠️ Admin already exists:", adminExists.email);
+    }
   } catch (error) {
-    console.error('Email sending error:', error);
-    throw new Error('Failed to send reset email');
+    console.error("❌ Admin setup error:", error);
   }
 };
 
-// Format user response (remove sensitive data)
-export const formatUserResponse = (user) => {
-  const userObj = user.toObject();
-  delete userObj.password;
-  delete userObj.resetPasswordToken;
-  delete userObj.resetPasswordExpires;
-  return userObj;
+// Check user permissions
+export const hasPermission = async (userId, requiredPermission) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user || user.role !== 'admin') return false;
+
+    const admin = await Admin.findOne({ user: userId });
+    if (!admin) return false;
+
+    return admin.permissions.includes(requiredPermission);
+  } catch (error) {
+    console.error('Permission check error:', error);
+    return false;
+  }
+};
+
+// Log user activity
+export const logUserActivity = async (userId, action, details = {}) => {
+  try {
+    await User.findByIdAndUpdate(userId, {
+      $push: {
+        activityLog: {
+          action,
+          details,
+          timestamp: new Date(),
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Activity log error:", error);
+  }
 };

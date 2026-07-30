@@ -1,30 +1,43 @@
+// routes/authRoutes.js
+console.log("Auth routes file path:", import.meta.url);
 import express from 'express';
+import {
+    patientRegister,
+    doctorRegister,
+    patientLogin,
+    doctorLogin,
+    adminLogin,
+    logout
+} from "../controllers/authController.js";
+import { authenticate, authorize } from '../middleware/auth.js';
+console.log("authRoutes loaded");
 import { 
-  registerUser, 
-  loginUser, 
-  verifyToken, 
-  logoutUser, 
-  getCurrentUser,
-  updateProfile,
-  changePassword,
-  forgotPassword,
-  resetPassword
-} from '../controllers/authController.js';
-import { protect } from '../middleware/auth.js';
+  validatePatientRegistration, 
+  validateLogin 
+} from '../middleware/validation.js';
 
 const router = express.Router();
+router.post(
+    "/doctor/register",
+    authenticate,
+    authorize("admin"),
+    doctorRegister
+);
+// Patient routes
+router.post(
+    "/patient/register",
+    validatePatientRegistration,
+    patientRegister
+);
+router.post('/patient/login', validateLogin, patientLogin);
 
-// Public routes
-router.post('/register', registerUser);
-router.post('/login', loginUser);
-router.post('/verify', verifyToken);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+// Doctor route
+router.post('/doctor/login', validateLogin, doctorLogin);
 
-// Protected routes (require authentication)
-router.post('/logout', protect, logoutUser);
-router.get('/me', protect, getCurrentUser);
-router.put('/profile', protect, updateProfile);
-router.put('/change-password', protect, changePassword);
+// Admin route
+router.post('/admin/login', validateLogin, adminLogin);
+
+// Logout route (protected)
+router.post('/logout', authenticate, logout);
 
 export default router;

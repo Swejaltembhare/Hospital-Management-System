@@ -1,163 +1,394 @@
-import React from 'react';
+// src/pages/Home.jsx
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, Stethoscope, Pill, History, ArrowRight, Shield, Clock, Users } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { 
+  CalendarIcon, 
+  UserGroupIcon, 
+  ClipboardDocumentListIcon, 
+  ClockIcon,
+  CheckBadgeIcon,
+  UserPlusIcon,
+  ArrowRightIcon,
+  ShieldCheckIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  MapPinIcon,
+  ChartBarIcon,
+  BuildingOfficeIcon,
+  HeartIcon
+} from '@heroicons/react/24/outline';
 
 const Home = () => {
-  return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-surface to-surface-container-low py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-label-md mb-6">
-                <Shield size={16} />
-                <span>Trusted Healthcare Platform</span>
-              </div>
-              
-              <h1 className="text-display-lg text-on-surface mb-6 leading-tight">
-                Hospital Management <br />
-                <span className="text-primary">System</span>
-              </h1>
-              
-              <p className="text-body-lg text-on-surface-variant mb-8 max-w-lg">
-                Book appointments with our doctors, manage prescriptions, 
-                and track your visit history — all in one place.
-              </p>
-              
-              <div className="flex flex-wrap gap-4">
-                <Link to="/doctors" className="px-6 py-3 bg-primary text-on-primary rounded-xl font-label-md hover:bg-primary-container transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                  Find a Doctor
-                  <ArrowRight size={20} />
-                </Link>
-                <Link to="/register" className="px-6 py-3 border-2 border-primary text-primary rounded-xl font-label-md hover:bg-primary/5 transition-all flex items-center gap-2">
-                  Register
-                  <ArrowRight size={20} />
-                </Link>
-              </div>
+  const { isAuthenticated, user } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-              <div className="flex items-center gap-8 mt-8 pt-8 border-t border-outline-variant/30">
-                <div>
-                  <p className="text-title-lg font-bold text-primary">50+</p>
-                  <p className="text-label-md text-on-surface-variant">Expert Doctors</p>
-                </div>
-                <div>
-                  <p className="text-title-lg font-bold text-primary">10k+</p>
-                  <p className="text-label-md text-on-surface-variant">Happy Patients</p>
-                </div>
-                <div>
-                  <p className="text-title-lg font-bold text-primary">98%</p>
-                  <p className="text-label-md text-on-surface-variant">Satisfaction Rate</p>
-                </div>
-              </div>
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/admin/stats');
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        } else {
+          setStats(null);
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        setStats(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const getDashboardPath = () => {
+    if (!isAuthenticated) return '/register';
+    if (user?.role === 'patient') return '/patient/dashboard';
+    if (user?.role === 'doctor') return '/doctor/dashboard';
+    if (user?.role === 'admin') return '/admin/dashboard';
+    return '/register';
+  };
+
+  const getButtonText = () => {
+    if (!isAuthenticated) return 'Get Started';
+    return 'Go to Dashboard';
+  };
+
+  const getHeroTitle = () => {
+    if (!isAuthenticated) return 'Book Doctor Appointments in Seconds';
+    if (user?.role === 'patient') return 'Welcome Back to Your Health Hub';
+    if (user?.role === 'doctor') return 'Manage Your Practice Efficiently';
+    if (user?.role === 'admin') return 'Hospital Management Dashboard';
+    return 'Book Doctor Appointments in Seconds';
+  };
+
+  const getHeroSubtitle = () => {
+    if (!isAuthenticated) {
+      return 'Connect with trusted healthcare professionals, manage appointments, and access your medical records all in one place — anytime, anywhere.';
+    }
+    if (user?.role === 'patient') {
+      return 'View your appointments, access prescriptions, and manage your health journey seamlessly.';
+    }
+    if (user?.role === 'doctor') {
+      return 'Manage your schedule, view patient appointments, and provide quality care efficiently.';
+    }
+    if (user?.role === 'admin') {
+      return 'Oversee hospital operations, manage staff, and track key performance metrics.';
+    }
+    return 'Connect with trusted healthcare professionals, manage appointments, and access your medical records all in one place — anytime, anywhere.';
+  };
+
+  const getCTATitle = () => {
+    if (!isAuthenticated) return 'Ready to Get Started?';
+    if (user?.role === 'patient') return 'Continue Your Health Journey';
+    if (user?.role === 'doctor') return 'Manage Your Practice';
+    if (user?.role === 'admin') return 'Manage Your Hospital';
+    return 'Ready to Get Started?';
+  };
+
+  const getCTASubtitle = () => {
+    if (!isAuthenticated) {
+      return 'Join thousands of patients and healthcare providers on our platform.';
+    }
+    if (user?.role === 'patient') {
+      return 'Access your dashboard to view appointments, prescriptions, and more.';
+    }
+    if (user?.role === 'doctor') {
+      return 'Access your dashboard to manage appointments and patient care.';
+    }
+    if (user?.role === 'admin') {
+      return 'Access your dashboard to manage hospital operations and analytics.';
+    }
+    return 'Join thousands of patients and healthcare providers on our platform.';
+  };
+
+  // Loading Skeleton for Stats
+  const StatsSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="bg-white rounded-xl p-6 shadow-md border border-gray-100 animate-pulse">
+          <div className="w-10 h-10 bg-gray-200 rounded-full mx-auto mb-3"></div>
+          <div className="h-8 bg-gray-200 rounded w-24 mx-auto mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* ========== HERO SECTION ========== */}
+      <section className="w-full bg-gradient-to-br from-teal-600 via-cyan-700 to-blue-800 text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 -right-40 w-96 h-96 bg-emerald-400 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-400 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-300 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* Medical Pattern Overlay */}
+        <div className="absolute inset-0 opacity-[0.03]">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="medical-pattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+                <circle cx="30" cy="30" r="3" fill="white" />
+                <path d="M30 15 L30 45 M15 30 L45 30" stroke="white" strokeWidth="1.5" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#medical-pattern)" />
+          </svg>
+        </div>
+
+        <div className="relative max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
+          <div className="text-center max-w-4xl mx-auto">
+            {/* Role Badge */}
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/20">
+              <ShieldCheckIcon className="w-4 h-4 text-emerald-300" />
+              <span className="text-xs font-medium text-white/90">
+                {isAuthenticated ? `Welcome, ${user?.name || user?.role}` : 'Secure & Trusted Platform'}
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-lg border border-outline-variant/30">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-3">
-                    <Calendar size={24} />
-                  </div>
-                  <h3 className="font-semibold text-on-surface mb-1">Easy Booking</h3>
-                  <p className="text-label-md text-on-surface-variant">Schedule appointments in seconds</p>
-                </div>
-                <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-lg border border-outline-variant/30">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-3">
-                    <Pill size={24} />
-                  </div>
-                  <h3 className="font-semibold text-on-surface mb-1">Prescriptions</h3>
-                  <p className="text-label-md text-on-surface-variant">Digital prescriptions anytime</p>
-                </div>
-              </div>
-              <div className="space-y-4 mt-8">
-                <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-lg border border-outline-variant/30">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-3">
-                    <Stethoscope size={24} />
-                  </div>
-                  <h3 className="font-semibold text-on-surface mb-1">Expert Doctors</h3>
-                  <p className="text-label-md text-on-surface-variant">Top specialists available</p>
-                </div>
-                <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-lg border border-outline-variant/30">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-3">
-                    <History size={24} />
-                  </div>
-                  <h3 className="font-semibold text-on-surface mb-1">Visit History</h3>
-                  <p className="text-label-md text-on-surface-variant">Track your health journey</p>
-                </div>
-              </div>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 leading-tight">
+              {getHeroTitle().split('in Seconds')[0]}
+              {getHeroTitle().includes('in Seconds') && (
+                <>
+                  <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 via-cyan-200 to-blue-200">
+                    in Seconds
+                  </span>
+                </>
+              )}
+            </h1>
+
+            <p className="text-base sm:text-lg md:text-xl text-blue-100 max-w-2xl mx-auto mb-8 leading-relaxed">
+              {getHeroSubtitle()}
+            </p>
+
+            {/* CTA Button - Role Aware */}
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link
+                to={getDashboardPath()}
+                className="group bg-white text-teal-700 hover:bg-slate-50 px-8 py-3.5 rounded-xl text-base font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2"
+              >
+                {getButtonText()}
+                <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              {!isAuthenticated && (
+                <Link
+                  to="/login"
+                  className="bg-transparent border-2 border-white/80 hover:bg-white/10 backdrop-blur-sm px-8 py-3.5 rounded-xl text-base font-semibold transition-all duration-300"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Wave Divider */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 80L60 70C120 60 240 40 360 35C480 30 600 30 720 35C840 40 960 50 1080 55C1200 60 1320 60 1380 60L1440 60V80H0Z" fill="#f1f5f9"/>
+          </svg>
+        </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 bg-surface-container-lowest">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ========== FEATURES SECTION ========== */}
+      <section className="w-full py-16 px-4 bg-slate-50">
+        <div className="max-w-full mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-headline-lg text-on-surface mb-3">Why Choose MediPrecise?</h2>
-            <p className="text-body-lg text-on-surface-variant max-w-2xl mx-auto">
-              Comprehensive healthcare management at your fingertips
+            <span className="inline-block px-4 py-1.5 bg-teal-100 text-teal-700 rounded-full text-sm font-semibold mb-4">
+              Features
+            </span>
+            <h2 className="text-2xl md:text-4xl font-bold text-slate-900 mb-3">
+              {isAuthenticated && user?.role === 'patient'
+                ? 'Everything You Need for Better Healthcare'
+                : 'Comprehensive Healthcare Management'}
+            </h2>
+            <p className="text-base md:text-lg text-slate-600 max-w-2xl mx-auto">
+              {isAuthenticated && user?.role === 'patient'
+                ? 'Manage your health journey with ease and confidence'
+                : 'Streamline hospital operations with our complete solution'}
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-surface p-6 rounded-2xl border border-outline-variant/30 hover:shadow-lg transition-shadow">
-              <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-4">
-                <Clock size={28} />
-              </div>
-              <h3 className="text-title-lg text-on-surface mb-2">24/7 Access</h3>
-              <p className="text-body-md text-on-surface-variant">
-                Access your health records and book appointments anytime, anywhere
-              </p>
-            </div>
-
-            <div className="bg-surface p-6 rounded-2xl border border-outline-variant/30 hover:shadow-lg transition-shadow">
-              <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-4">
-                <Shield size={28} />
-              </div>
-              <h3 className="text-title-lg text-on-surface mb-2">Secure & Private</h3>
-              <p className="text-body-md text-on-surface-variant">
-                Your health data is encrypted and protected with enterprise-grade security
-              </p>
-            </div>
-
-            <div className="bg-surface p-6 rounded-2xl border border-outline-variant/30 hover:shadow-lg transition-shadow">
-              <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-4">
-                <Users size={28} />
-              </div>
-              <h3 className="text-title-lg text-on-surface mb-2">Expert Network</h3>
-              <p className="text-body-md text-on-surface-variant">
-                Connect with certified doctors and specialists across multiple disciplines
-              </p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {isAuthenticated && user?.role === 'patient' ? (
+              <>
+                <FeatureCard
+                  icon={<CalendarIcon className="w-7 h-7 text-teal-600" />}
+                  title="Easy Booking"
+                  description="Book appointments with your preferred doctors in just a few clicks"
+                  color="teal"
+                />
+                <FeatureCard
+                  icon={<ClockIcon className="w-7 h-7 text-cyan-600" />}
+                  title="Track Appointments"
+                  description="View upcoming, past, and cancelled appointments at a glance"
+                  color="cyan"
+                />
+                <FeatureCard
+                  icon={<ClipboardDocumentListIcon className="w-7 h-7 text-emerald-600" />}
+                  title="View Prescriptions"
+                  description="Access your digital prescriptions and medical history securely"
+                  color="emerald"
+                />
+                <FeatureCard
+                  icon={<CheckBadgeIcon className="w-7 h-7 text-blue-600" />}
+                  title="24/7 Access"
+                  description="Manage your healthcare needs anytime from any device"
+                  color="blue"
+                />
+              </>
+            ) : (
+              <>
+                <FeatureCard
+                  icon={<UserGroupIcon className="w-7 h-7 text-teal-600" />}
+                  title="Doctor Management"
+                  description="Manage doctor profiles, schedules, and availability with ease"
+                  color="teal"
+                />
+                <FeatureCard
+                  icon={<UserPlusIcon className="w-7 h-7 text-cyan-600" />}
+                  title="Patient Portal"
+                  description="Patients can book appointments and access their health records"
+                  color="cyan"
+                />
+                <FeatureCard
+                  icon={<CalendarIcon className="w-7 h-7 text-emerald-600" />}
+                  title="Appointment Scheduling"
+                  description="Real-time scheduling with automated conflict detection"
+                  color="emerald"
+                />
+                <FeatureCard
+                  icon={<ChartBarIcon className="w-7 h-7 text-blue-600" />}
+                  title="Analytics Dashboard"
+                  description="Complete system oversight with comprehensive analytics"
+                  color="blue"
+                />
+              </>
+            )}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+      {/* ========== LIVE STATS SECTION ========== */}
+      <section className="w-full py-16 px-4 bg-white">
+        <div className="max-w-full mx-auto">
+          <div className="text-center mb-12">
+            <span className="inline-block px-4 py-1.5 bg-teal-100 text-teal-700 rounded-full text-sm font-semibold mb-4">
+              Our Impact
+            </span>
+            <h2 className="text-2xl md:text-4xl font-bold text-slate-900">
+              Making Healthcare Accessible
+            </h2>
+          </div>
+
+          {loading ? (
+            <StatsSkeleton />
+          ) : stats && Object.keys(stats).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {stats.patients !== undefined && (
+                <StatCard
+                  number={stats.patients}
+                  label="Registered Patients"
+                  icon={<UserGroupIcon className="w-7 h-7 mx-auto mb-3 text-teal-600" />}
+                  color="teal"
+                />
+              )}
+              {stats.doctors !== undefined && (
+                <StatCard
+                  number={stats.doctors}
+                  label="Expert Doctors"
+                  icon={<UserPlusIcon className="w-7 h-7 mx-auto mb-3 text-cyan-600" />}
+                  color="cyan"
+                />
+              )}
+              {stats.appointments !== undefined && (
+                <StatCard
+                  number={stats.appointments}
+                  label="Appointments Booked"
+                  icon={<CalendarIcon className="w-7 h-7 mx-auto mb-3 text-emerald-600" />}
+                  color="emerald"
+                />
+              )}
+              {stats.departments !== undefined && (
+                <StatCard
+                  number={stats.departments}
+                  label="Departments"
+                  icon={<BuildingOfficeIcon className="w-7 h-7 mx-auto mb-3 text-blue-600" />}
+                  color="blue"
+                />
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-slate-500">
+              <p className="text-sm">No statistics available at the moment.</p>
+            </div>
+          )}
         </div>
-        
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h2 className="text-headline-lg text-on-primary mb-4">
-            Ready to Transform Your Healthcare Experience?
+      </section>
+
+      {/* ========== CTA FOOTER SECTION ========== */}
+      <section className="w-full py-16 px-4 bg-gradient-to-r from-teal-600 via-cyan-700 to-blue-800">
+        <div className="max-w-4xl mx-auto text-center text-white">
+          <h2 className="text-2xl md:text-4xl font-bold mb-4">
+            {getCTATitle()}
           </h2>
-          <p className="text-body-lg text-on-primary/80 mb-8 max-w-2xl mx-auto">
-            Join thousands of patients who trust MediPrecise for their healthcare needs
+          <p className="text-base md:text-lg text-white/90 mb-6">
+            {getCTASubtitle()}
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/register" className="px-8 py-3 bg-white text-primary rounded-xl font-label-md hover:bg-surface-container transition-all shadow-lg hover:shadow-xl">
-              Get Started Now
-            </Link>
-            <Link to="/doctors" className="px-8 py-3 border-2 border-white text-on-primary rounded-xl font-label-md hover:bg-white/10 transition-all">
-              Find a Doctor
-            </Link>
-          </div>
+          <Link
+            to={getDashboardPath()}
+            className="inline-flex items-center gap-3 bg-white text-teal-700 hover:bg-slate-50 px-8 py-3.5 rounded-xl text-base font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
+          >
+            {getButtonText()}
+            <ArrowRightIcon className="w-5 h-5" />
+          </Link>
         </div>
       </section>
+    </div>
+  );
+};
+
+// ========== COMPONENTS ==========
+const FeatureCard = ({ icon, title, description, color }) => {
+  const colors = {
+    teal: 'hover:border-teal-200 hover:shadow-teal-100',
+    cyan: 'hover:border-cyan-200 hover:shadow-cyan-100',
+    emerald: 'hover:border-emerald-200 hover:shadow-emerald-100',
+    blue: 'hover:border-blue-200 hover:shadow-blue-100'
+  };
+
+  return (
+    <div className={`bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-100 ${colors[color]}`}>
+      <div className="bg-gradient-to-br from-slate-50 to-white w-14 h-14 rounded-xl flex items-center justify-center mb-4 mx-auto">
+        {icon}
+      </div>
+      <h3 className="text-base font-semibold text-slate-900 mb-2 text-center">{title}</h3>
+      <p className="text-sm text-slate-600 text-center leading-relaxed">{description}</p>
+    </div>
+  );
+};
+
+const StatCard = ({ number, label, icon, color }) => {
+  const colors = {
+    teal: 'border-teal-200 hover:shadow-teal-100',
+    cyan: 'border-cyan-200 hover:shadow-cyan-100',
+    emerald: 'border-emerald-200 hover:shadow-emerald-100',
+    blue: 'border-blue-200 hover:shadow-blue-100'
+  };
+
+  return (
+    <div className={`bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border ${colors[color]}`}>
+      {icon}
+      <div className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+        {typeof number === 'number' ? number.toLocaleString() : '—'}
+      </div>
+      <div className="text-sm text-slate-600 font-medium mt-1">{label}</div>
     </div>
   );
 };

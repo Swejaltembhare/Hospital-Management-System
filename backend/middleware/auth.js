@@ -1,97 +1,126 @@
+// middleware/auth.js
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-// Protect routes - require authentication
-export const protect = async (req, res, next) => {
+export const authenticate = async (req, res, next) => {
   try {
+    console.log("Authorization:", req.headers.authorization);
     const token = req.headers.authorization?.split(' ')[1];
-    
+    console.log("Token:", token);
+
     if (!token) {
       return res.status(401).json({ 
         success: false,
-        message: 'Not authorized, no token' 
+        error: 'Authentication required',
+        message: 'No token provided'
       });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("Decoded:", decoded);
+
     const user = await User.findById(decoded.userId).select('-password');
     
     if (!user) {
       return res.status(401).json({ 
         success: false,
-        message: 'Not authorized, user not found' 
+        error: 'Authentication failed',
+        message: 'User not found'
       });
     }
 
     if (!user.isActive) {
-      return res.status(401).json({ 
+      return res.status(403).json({ 
         success: false,
-        message: 'Account is deactivated' 
+        error: 'Account disabled',
+        message: 'Your account has been deactivated'
       });
     }
 
     req.user = user;
+    req.userId = user._id;
+    req.userRole = user.role;
+    
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({ 
         success: false,
-        message: 'Not authorized, invalid token' 
+        error: 'Invalid token',
+        message: 'Please login again'
       });
     }
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ 
         success: false,
-        message: 'Not authorized, token expired' 
+        error: 'Token expired',
+        message: 'Please login again'
       });
     }
-    res.status(401).json({ 
+    console.error('Auth middleware error:', error);
+    res.status(500).json({ 
       success: false,
-      message: 'Not authorized, token failed' 
+      error: 'Authentication error',
+      message: 'Something went wrong'
     });
   }
 };
 
-// Authorize roles - require specific roles
 export const authorize = (...roles) => {
   return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        error: 'Authentication required' 
+      });
+    }
+    
     if (!roles.includes(req.user.role)) {
       return res.status(403).json({ 
         success: false,
-        message: `Role ${req.user.role} is not authorized to access this route` 
+        error: 'Access denied',
+        message: `Role ${req.user.role} is not authorized for this action`
       });
     }
     next();
   };
 };
 
-// Optional: Rate limiting middleware
-export const rateLimiter = (maxRequests = 10, windowMs = 60000) => {
-  const requests = new Map();
-  
-  return (req, res, next) => {
-    const ip = req.ip;
-    const now = Date.now();
-    const windowStart = now - windowMs;
-    
-    if (!requests.has(ip)) {
-      requests.set(ip, []);
-    }
-    
-    const userRequests = requests.get(ip);
-    const recentRequests = userRequests.filter(time => time > windowStart);
-    
-    if (recentRequests.length >= maxRequests) {
-      return res.status(429).json({ 
+export const authorizePermissions = (...permissions) => {
+  return async (req, res, next) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ 
+          success: false,
+          error: 'Access denied' 
+        });
+      }
+
+      const Admin = (await import('../models/Admin.js')).default;
+      const admin = await Admin.findOne({ user: req.user._id });
+      
+      if (!admin) {
+        return res.status(403).json({ 
+          success: false,
+          error: 'Admin profile not found' 
+        });
+      }
+
+      const hasPermission = permissions.some(p => admin.permissions.includes(p));
+      if (!hasPermission) {
+        return res.status(403).json({ 
+          success: false,
+          error: 'Insufficient permissions',
+          message: 'You need additional permissions for this action'
+        });
+      }
+      next();
+    } catch (error) {
+      console.error('Permission check error:', error);
+      res.status(500).json({ 
         success: false,
-        message: 'Too many requests, please try again later' 
+        error: 'Permission check failed' 
       });
     }
-    
-    userRequests.push(now);
-    requests.set(ip, userRequests);
-    next();
   };
 };

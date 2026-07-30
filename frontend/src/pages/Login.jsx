@@ -1,7 +1,7 @@
+// src/pages/Login.jsx
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -9,18 +9,22 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    remember: false,
+    role: 'patient'
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const roles = [
+    { value: 'patient', label: 'Patient' },
+    { value: 'doctor', label: 'Doctor' },
+    { value: 'admin', label: 'Admin' }
+  ];
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -28,13 +32,10 @@ const Login = () => {
     setError('');
     setLoading(true);
 
-    const result = await login({
-      email: formData.email,
-      password: formData.password,
-    });
-
+    const result = await login(formData.email, formData.password, formData.role);
+    
     if (result.success) {
-      navigate('/dashboard');
+      navigate(`/${formData.role}/dashboard`);
     } else {
       setError(result.error || 'Login failed. Please try again.');
     }
@@ -42,112 +43,120 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
-      <div className="w-full max-w-[440px]">
-        <div className="bg-surface-container-lowest rounded-2xl shadow-xl p-8 border border-outline-variant/30">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center text-on-primary shadow-lg mx-auto mb-4">
-              <span className="text-[40px]">🏥</span>
-            </div>
-            <h2 className="text-headline-lg text-on-surface mb-1">Welcome back</h2>
-            <p className="text-body-md text-on-surface-variant">Access your clinical portal</p>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="text-center text-3xl font-extrabold text-gray-900">
+          Sign In
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Or{' '}
+          <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+            create a new account
+          </Link>
+        </p>
+      </div>
 
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1">
-              <label className="text-label-md text-on-surface block px-1" htmlFor="email">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
                 Email Address
               </label>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors" size={20} />
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
                 <input
-                  id="email"
-                  name="email"
                   type="email"
+                  name="email"
+                  required
                   value={formData.email}
                   onChange={handleChange}
-                  required
-                  className="w-full pl-12 pr-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-soft text-body-md"
-                  placeholder="you@example.com"
+                  className="pl-10 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter your email"
                 />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <div className="flex justify-between items-center px-1">
-                <label className="text-label-md text-on-surface block" htmlFor="password">
-                  Password
-                </label>
-                <Link className="text-label-md text-primary hover:underline" to="#">
-                  Forgot Password?
-                </Link>
-              </div>
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors" size={20} />
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <div className="mt-1 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
                 <input
-                  id="password"
+                  type="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  required
                   value={formData.password}
                   onChange={handleChange}
-                  required
-                  minLength={6}
-                  className="w-full pl-12 pr-12 py-3 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-soft text-body-md"
-                  placeholder="••••••••"
+                  className="pl-10 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter your password"
                 />
-                <button
-                  type="button"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 px-1">
-              <input
-                id="remember"
-                name="remember"
-                type="checkbox"
-                checked={formData.remember}
-                onChange={handleChange}
-                className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary bg-surface-container-low cursor-pointer"
-              />
-              <label className="text-body-md text-on-surface-variant cursor-pointer select-none" htmlFor="remember">
-                Remember this device
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Login As
               </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                {roles.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary text-on-primary text-title-lg py-3.5 rounded-xl shadow-md hover:bg-primary-container transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  Sign In
-                  <LogIn size={24} />
-                </>
-              )}
-            </button>
+            <div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span>Signing in...</span>
+                ) : (
+                  'Sign In'
+                )}
+              </button>
+            </div>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-outline-variant/30 text-center">
-            <p className="text-body-md text-on-surface-variant">
-              Don't have an account?
-              <Link to="/register" className="text-primary font-bold hover:underline ml-1">
-                Register here
-              </Link>
-            </p>
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">
+                  Demo Credentials
+                </span>
+              </div>
+            </div>
+            <div className="mt-4 text-sm text-gray-600 space-y-1">
+              <p><span className="font-medium">Admin:</span> admin@hospital.com / Admin@2024</p>
+              <p><span className="font-medium">Patient:</span> Register to create account</p>
+            </div>
           </div>
         </div>
       </div>
