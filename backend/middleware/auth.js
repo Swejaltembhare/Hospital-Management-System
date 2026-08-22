@@ -6,7 +6,7 @@ export const authenticate = async (req, res, next) => {
   try {
     console.log("Authorization:", req.headers.authorization);
     const token = req.headers.authorization?.split(' ')[1];
-    console.log("Token:", token);
+    // console.log("Token:", token);
 
     if (!token) {
       return res.status(401).json({ 
@@ -17,7 +17,7 @@ export const authenticate = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded:", decoded);
+    // console.log("Decoded:", decoded);
 
     const user = await User.findById(decoded.userId).select('-password');
     
