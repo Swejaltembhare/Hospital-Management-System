@@ -8,8 +8,6 @@ const router = express.Router();
 // All routes require authentication and patient role
 router.use(authenticate);
 router.use(authorize('patient'));
-// patientRoutes.js
-router.get("/doctors", patientController.getAvailableDoctors);
 // Patient profile
 router.get('/profile', patientController.getProfile);
 router.put('/profile', patientController.updateProfile);
@@ -28,4 +26,8 @@ router.post('/medical-history', patientController.addMedicalHistory);
 router.get('/doctors', patientController.getAvailableDoctors);
 router.get('/doctors/:id', patientController.getDoctorDetails);
 
+router.get("/medications", patientController.getMedications);
+router.get("/health-score", patientController.getHealthScore);
+router.get("/health-metrics", patientController.getHealthMetrics);
+router.get("/emergency-contacts", patientController.getEmergencyContacts);
 export default router;

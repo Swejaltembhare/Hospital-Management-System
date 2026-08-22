@@ -391,3 +391,98 @@ export const getMyRatings = async (req, res) => {
     });
   }
 };
+
+export const getAllDoctors = async (req, res) => {
+  try {
+    const doctors = await Doctor.find()
+      .populate("user", "fullName email phoneNumber");
+
+    const formattedDoctors = doctors.map((doctor) => ({
+      _id: doctor._id,
+      fullName: doctor.user?.fullName,
+      email: doctor.user?.email,
+      phoneNumber: doctor.user?.phoneNumber,
+      department: doctor.department,
+      specialization: doctor.specialization,
+      experience: doctor.experience,
+      consultationFee: doctor.consultationFee,
+      isAvailable: doctor.isAvailable,
+      languages: doctor.languages,
+      averageRating: doctor.averageRating,
+    }));
+
+    res.status(200).json({
+      success: true,
+      doctors: formattedDoctors,
+    });
+
+  } catch (error) {
+    console.error("Get doctors error:", error);
+
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch doctors",
+    });
+  }
+};
+
+export const getAvailableSlots = async (req, res) => {
+  try {
+    const { doctorId } = req.params;
+    const { date } = req.query;
+
+    const doctor = await Doctor.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    const dayName = new Date(date).toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+
+    const daySlots = doctor.availableSlots.filter(
+      (slot) => slot.day === dayName && slot.isAvailable
+    );
+
+    let slots = [];
+
+    daySlots.forEach((slot) => {
+      let [startHour, startMinute] = slot.startTime.split(":").map(Number);
+      let [endHour, endMinute] = slot.endTime.split(":").map(Number);
+
+      let start = startHour * 60 + startMinute;
+      let end = endHour * 60 + endMinute;
+
+      while (start < end) {
+        const h = String(Math.floor(start / 60)).padStart(2, "0");
+        const m = String(start % 60).padStart(2, "0");
+
+        slots.push({
+          time: `${h}:${m}`,
+          booked: false,
+        });
+
+        start += 30;
+      }
+    });
+
+    console.log(slots);
+
+    res.json({
+      success: true,
+      slots,
+    });
+
+  } catch (err) {
+    console.log(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};

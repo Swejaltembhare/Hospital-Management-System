@@ -1,5 +1,5 @@
 // src/components/admin/AppointmentTable.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Eye, 
@@ -9,13 +9,66 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
-  Search
+  Search,
+  RefreshCw
 } from 'lucide-react';
 
-const AppointmentTable = ({ appointments }) => {
+const AppointmentTable = () => {
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [statusFilter, setStatusFilter] = useState('all');
   const itemsPerPage = 5;
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [currentPage, statusFilter]);
+
+  const fetchAppointments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: itemsPerPage,
+        status: statusFilter !== 'all' ? statusFilter : '',
+        search: searchTerm
+      });
+
+      const response = await fetch(`/api/appointments?${params}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch appointments');
+      }
+
+      const data = await response.json();
+      
+      setAppointments(data.appointments || []);
+      setTotalPages(data.pagination?.totalPages || 1);
+      setTotalItems(data.pagination?.totalItems || 0);
+    } catch (err) {
+      console.error('Error fetching appointments:', err);
+      setError('Failed to load appointments. Please try again.');
+      setAppointments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchAppointments();
+  };
+
+  const handleStatusFilter = (status) => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+  };
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -27,14 +80,82 @@ const AppointmentTable = ({ appointments }) => {
     return badges[status] || 'bg-gray-100 text-gray-700';
   };
 
-  const filteredAppointments = appointments?.filter(app => 
-    app.patient?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.doctor?.user?.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const handleStatusUpdate = async (appointmentId, newStatus) => {
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
 
-  const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedAppointments = filteredAppointments.slice(startIndex, startIndex + itemsPerPage);
+      if (!response.ok) {
+        throw new Error('Failed to update appointment status');
+      }
+
+      fetchAppointments();
+    } catch (err) {
+      console.error('Error updating appointment:', err);
+      alert('Failed to update appointment status. Please try again.');
+    }
+  };
+
+  const handleCancel = async (appointmentId) => {
+    if (!window.confirm('Are you sure you want to cancel this appointment?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to cancel appointment');
+      }
+
+      fetchAppointments();
+    } catch (err) {
+      console.error('Error cancelling appointment:', err);
+      alert('Failed to cancel appointment. Please try again.');
+    }
+  };
+
+  const handleEdit = (appointmentId) => {
+    // Navigate to edit page or open modal
+    console.log('Edit appointment:', appointmentId);
+  };
+
+  const handleView = (appointmentId) => {
+    // Navigate to view page or open modal
+    console.log('View appointment:', appointmentId);
+  };
+
+  if (loading && appointments.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading appointments...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+        <p className="text-red-600">{error}</p>
+        <button 
+          onClick={fetchAppointments}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -44,8 +165,22 @@ const AppointmentTable = ({ appointments }) => {
     >
       <div className="p-6 border-b border-gray-100">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h3 className="text-lg font-semibold text-gray-800">Today's Appointments</h3>
+          <h3 className="text-lg font-semibold text-gray-800">
+            Appointments {totalItems > 0 && `(${totalItems})`}
+          </h3>
           <div className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={statusFilter}
+              onChange={(e) => handleStatusFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
@@ -53,9 +188,18 @@ const AppointmentTable = ({ appointments }) => {
                 placeholder="Search appointments..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+
+            <button
+              onClick={fetchAppointments}
+              className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition flex items-center gap-2"
+            >
+              <RefreshCw size={16} />
+              <span className="text-sm">Refresh</span>
+            </button>
           </div>
         </div>
       </div>
@@ -74,8 +218,8 @@ const AppointmentTable = ({ appointments }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {paginatedAppointments.length > 0 ? (
-              paginatedAppointments.map((appointment, index) => (
+            {appointments.length > 0 ? (
+              appointments.map((appointment, index) => (
                 <motion.tr
                   key={appointment._id || index}
                   initial={{ opacity: 0 }}
@@ -87,11 +231,17 @@ const AppointmentTable = ({ appointments }) => {
                     <p className="text-sm font-medium text-gray-900">
                       {appointment.patient?.fullName || 'Unknown'}
                     </p>
+                    {appointment.patient?.email && (
+                      <p className="text-xs text-gray-500">{appointment.patient.email}</p>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <p className="text-sm text-gray-600">
                       Dr. {appointment.doctor?.user?.fullName || 'Unknown'}
                     </p>
+                    {appointment.doctor?.specialty && (
+                      <p className="text-xs text-gray-500">{appointment.doctor.specialty}</p>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <p className="text-sm text-gray-600">
@@ -113,18 +263,34 @@ const AppointmentTable = ({ appointments }) => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <button className="p-1 hover:bg-blue-50 rounded-lg transition-colors" title="View">
+                      <button 
+                        onClick={() => handleView(appointment._id)}
+                        className="p-1 hover:bg-blue-50 rounded-lg transition-colors" 
+                        title="View"
+                      >
                         <Eye size={16} className="text-blue-600" />
                       </button>
-                      <button className="p-1 hover:bg-green-50 rounded-lg transition-colors" title="Edit">
+                      <button 
+                        onClick={() => handleEdit(appointment._id)}
+                        className="p-1 hover:bg-green-50 rounded-lg transition-colors" 
+                        title="Edit"
+                      >
                         <Edit size={16} className="text-green-600" />
                       </button>
                       {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
                         <>
-                          <button className="p-1 hover:bg-green-50 rounded-lg transition-colors" title="Complete">
+                          <button 
+                            onClick={() => handleStatusUpdate(appointment._id, 'completed')}
+                            className="p-1 hover:bg-green-50 rounded-lg transition-colors" 
+                            title="Complete"
+                          >
                             <CheckCircle size={16} className="text-green-600" />
                           </button>
-                          <button className="p-1 hover:bg-red-50 rounded-lg transition-colors" title="Cancel">
+                          <button 
+                            onClick={() => handleCancel(appointment._id)}
+                            className="p-1 hover:bg-red-50 rounded-lg transition-colors" 
+                            title="Cancel"
+                          >
                             <XCircle size={16} className="text-red-600" />
                           </button>
                         </>
@@ -138,6 +304,9 @@ const AppointmentTable = ({ appointments }) => {
                 <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                   <Clock size={48} className="mx-auto mb-3 text-gray-300" />
                   <p>No appointments found</p>
+                  {searchTerm && (
+                    <p className="text-sm mt-1">Try adjusting your search or filters</p>
+                  )}
                 </td>
               </tr>
             )}
@@ -145,11 +314,10 @@ const AppointmentTable = ({ appointments }) => {
         </table>
       </div>
 
-      {/* Pagination */}
-      {filteredAppointments.length > 0 && (
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+      {totalItems > 0 && (
+        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between flex-wrap gap-4">
           <p className="text-sm text-gray-500">
-            Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredAppointments.length)} of {filteredAppointments.length}
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} appointments
           </p>
           <div className="flex gap-2">
             <button
@@ -159,6 +327,39 @@ const AppointmentTable = ({ appointments }) => {
             >
               <ChevronLeft size={16} />
             </button>
+            
+            <div className="flex gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-blue-600 text-white'
+                        : 'hover:bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+              {totalPages > 5 && currentPage < totalPages - 2 && (
+                <span className="px-2 py-1 text-gray-400">...</span>
+              )}
+            </div>
+
             <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}

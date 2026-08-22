@@ -107,25 +107,25 @@ const Home = () => {
 
   // Loading Skeleton for Stats
   const StatsSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="bg-white rounded-xl p-6 shadow-md border border-gray-100 animate-pulse">
-          <div className="w-10 h-10 bg-gray-200 rounded-full mx-auto mb-3"></div>
-          <div className="h-8 bg-gray-200 rounded w-24 mx-auto mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-white rounded-2xl p-6 shadow-md border border-slate-100 animate-pulse">
+          <div className="w-12 h-12 bg-slate-200 rounded-xl mx-auto mb-3"></div>
+          <div className="h-8 bg-slate-200 rounded w-24 mx-auto mb-2"></div>
+          <div className="h-4 bg-slate-200 rounded w-32 mx-auto"></div>
         </div>
       ))}
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-teal-50/30">
       {/* ========== HERO SECTION ========== */}
-      <section className="w-full bg-gradient-to-br from-teal-600 via-cyan-700 to-blue-800 text-white relative overflow-hidden">
+      <section className="w-full bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 -right-40 w-96 h-96 bg-emerald-400 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-400 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-300 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-teal-400 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-300 rounded-full blur-3xl"></div>
         </div>
 
         {/* Medical Pattern Overlay */}
@@ -156,14 +156,14 @@ const Home = () => {
               {getHeroTitle().includes('in Seconds') && (
                 <>
                   <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 via-cyan-200 to-blue-200">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 via-teal-200 to-cyan-200">
                     in Seconds
                   </span>
                 </>
               )}
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-blue-100 max-w-2xl mx-auto mb-8 leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-teal-100 max-w-2xl mx-auto mb-8 leading-relaxed">
               {getHeroSubtitle()}
             </p>
 
@@ -197,7 +197,7 @@ const Home = () => {
       </section>
 
       {/* ========== FEATURES SECTION ========== */}
-      <section className="w-full py-16 px-4 bg-slate-50">
+      <section className="w-full py-16 px-4 bg-gradient-to-br from-slate-50 via-gray-50 to-teal-50/30">
         <div className="max-w-full mx-auto">
           <div className="text-center mb-12">
             <span className="inline-block px-4 py-1.5 bg-teal-100 text-teal-700 rounded-full text-sm font-semibold mb-4">
@@ -219,126 +219,68 @@ const Home = () => {
             {isAuthenticated && user?.role === 'patient' ? (
               <>
                 <FeatureCard
-                  icon={<CalendarIcon className="w-7 h-7 text-teal-600" />}
+                  icon={<CalendarIcon className="w-6 h-6 text-teal-600" />}
                   title="Easy Booking"
                   description="Book appointments with your preferred doctors in just a few clicks"
                   color="teal"
                 />
                 <FeatureCard
-                  icon={<ClockIcon className="w-7 h-7 text-cyan-600" />}
+                  icon={<ClockIcon className="w-6 h-6 text-cyan-600" />}
                   title="Track Appointments"
                   description="View upcoming, past, and cancelled appointments at a glance"
                   color="cyan"
                 />
                 <FeatureCard
-                  icon={<ClipboardDocumentListIcon className="w-7 h-7 text-emerald-600" />}
+                  icon={<ClipboardDocumentListIcon className="w-6 h-6 text-emerald-600" />}
                   title="View Prescriptions"
                   description="Access your digital prescriptions and medical history securely"
                   color="emerald"
                 />
                 <FeatureCard
-                  icon={<CheckBadgeIcon className="w-7 h-7 text-blue-600" />}
+                  icon={<CheckBadgeIcon className="w-6 h-6 text-violet-600" />}
                   title="24/7 Access"
                   description="Manage your healthcare needs anytime from any device"
-                  color="blue"
+                  color="violet"
                 />
               </>
             ) : (
               <>
                 <FeatureCard
-                  icon={<UserGroupIcon className="w-7 h-7 text-teal-600" />}
+                  icon={<UserGroupIcon className="w-6 h-6 text-teal-600" />}
                   title="Doctor Management"
                   description="Manage doctor profiles, schedules, and availability with ease"
                   color="teal"
                 />
                 <FeatureCard
-                  icon={<UserPlusIcon className="w-7 h-7 text-cyan-600" />}
+                  icon={<UserPlusIcon className="w-6 h-6 text-cyan-600" />}
                   title="Patient Portal"
                   description="Patients can book appointments and access their health records"
                   color="cyan"
                 />
                 <FeatureCard
-                  icon={<CalendarIcon className="w-7 h-7 text-emerald-600" />}
+                  icon={<CalendarIcon className="w-6 h-6 text-emerald-600" />}
                   title="Appointment Scheduling"
                   description="Real-time scheduling with automated conflict detection"
                   color="emerald"
                 />
                 <FeatureCard
-                  icon={<ChartBarIcon className="w-7 h-7 text-blue-600" />}
+                  icon={<ChartBarIcon className="w-6 h-6 text-violet-600" />}
                   title="Analytics Dashboard"
                   description="Complete system oversight with comprehensive analytics"
-                  color="blue"
+                  color="violet"
                 />
               </>
             )}
           </div>
         </div>
       </section>
-
-      {/* ========== LIVE STATS SECTION ========== */}
-      <section className="w-full py-16 px-4 bg-white">
-        <div className="max-w-full mx-auto">
-          <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1.5 bg-teal-100 text-teal-700 rounded-full text-sm font-semibold mb-4">
-              Our Impact
-            </span>
-            <h2 className="text-2xl md:text-4xl font-bold text-slate-900">
-              Making Healthcare Accessible
-            </h2>
-          </div>
-
-          {loading ? (
-            <StatsSkeleton />
-          ) : stats && Object.keys(stats).length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {stats.patients !== undefined && (
-                <StatCard
-                  number={stats.patients}
-                  label="Registered Patients"
-                  icon={<UserGroupIcon className="w-7 h-7 mx-auto mb-3 text-teal-600" />}
-                  color="teal"
-                />
-              )}
-              {stats.doctors !== undefined && (
-                <StatCard
-                  number={stats.doctors}
-                  label="Expert Doctors"
-                  icon={<UserPlusIcon className="w-7 h-7 mx-auto mb-3 text-cyan-600" />}
-                  color="cyan"
-                />
-              )}
-              {stats.appointments !== undefined && (
-                <StatCard
-                  number={stats.appointments}
-                  label="Appointments Booked"
-                  icon={<CalendarIcon className="w-7 h-7 mx-auto mb-3 text-emerald-600" />}
-                  color="emerald"
-                />
-              )}
-              {stats.departments !== undefined && (
-                <StatCard
-                  number={stats.departments}
-                  label="Departments"
-                  icon={<BuildingOfficeIcon className="w-7 h-7 mx-auto mb-3 text-blue-600" />}
-                  color="blue"
-                />
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-slate-500">
-              <p className="text-sm">No statistics available at the moment.</p>
-            </div>
-          )}
-        </div>
-      </section>
-
       {/* ========== CTA FOOTER SECTION ========== */}
-      <section className="w-full py-16 px-4 bg-gradient-to-r from-teal-600 via-cyan-700 to-blue-800">
+      <section className="w-full py-16 px-4 bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-800">
         <div className="max-w-4xl mx-auto text-center text-white">
           <h2 className="text-2xl md:text-4xl font-bold mb-4">
             {getCTATitle()}
           </h2>
-          <p className="text-base md:text-lg text-white/90 mb-6">
+          <p className="text-base md:text-lg text-teal-100 mb-6">
             {getCTASubtitle()}
           </p>
           <Link
@@ -360,12 +302,19 @@ const FeatureCard = ({ icon, title, description, color }) => {
     teal: 'hover:border-teal-200 hover:shadow-teal-100',
     cyan: 'hover:border-cyan-200 hover:shadow-cyan-100',
     emerald: 'hover:border-emerald-200 hover:shadow-emerald-100',
-    blue: 'hover:border-blue-200 hover:shadow-blue-100'
+    violet: 'hover:border-violet-200 hover:shadow-violet-100'
+  };
+
+  const bgColors = {
+    teal: 'bg-teal-50',
+    cyan: 'bg-cyan-50',
+    emerald: 'bg-emerald-50',
+    violet: 'bg-violet-50'
   };
 
   return (
-    <div className={`bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-100 ${colors[color]}`}>
-      <div className="bg-gradient-to-br from-slate-50 to-white w-14 h-14 rounded-xl flex items-center justify-center mb-4 mx-auto">
+    <div className={`bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-100 ${colors[color]}`}>
+      <div className={`${bgColors[color]} w-12 h-12 rounded-xl flex items-center justify-center mb-4 mx-auto transition-all duration-300 group-hover:scale-110`}>
         {icon}
       </div>
       <h3 className="text-base font-semibold text-slate-900 mb-2 text-center">{title}</h3>
@@ -379,13 +328,22 @@ const StatCard = ({ number, label, icon, color }) => {
     teal: 'border-teal-200 hover:shadow-teal-100',
     cyan: 'border-cyan-200 hover:shadow-cyan-100',
     emerald: 'border-emerald-200 hover:shadow-emerald-100',
-    blue: 'border-blue-200 hover:shadow-blue-100'
+    violet: 'border-violet-200 hover:shadow-violet-100'
+  };
+
+  const gradients = {
+    teal: 'from-teal-600 to-cyan-600',
+    cyan: 'from-cyan-600 to-teal-600',
+    emerald: 'from-emerald-600 to-teal-600',
+    violet: 'from-violet-600 to-indigo-600'
   };
 
   return (
-    <div className={`bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border ${colors[color]}`}>
-      {icon}
-      <div className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+    <div className={`bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border ${colors[color]}`}>
+      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-50 to-white flex items-center justify-center mx-auto mb-3">
+        {icon}
+      </div>
+      <div className={`text-3xl md:text-4xl font-extrabold bg-gradient-to-r ${gradients[color]} bg-clip-text text-transparent`}>
         {typeof number === 'number' ? number.toLocaleString() : '—'}
       </div>
       <div className="text-sm text-slate-600 font-medium mt-1">{label}</div>
@@ -394,3 +352,9 @@ const StatCard = ({ number, label, icon, color }) => {
 };
 
 export default Home;
+
+
+
+
+
+

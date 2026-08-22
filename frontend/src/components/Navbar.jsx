@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaUserMd, FaHospitalUser, FaUserShield, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
+import { FaUserMd, FaHospitalUser, FaUserShield, FaSignOutAlt, FaBars, FaTimes, FaHeartbeat } from 'react-icons/fa';
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -38,8 +38,29 @@ const Navbar = () => {
       <div className="max-w-full max-w-7 mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-2xl font-bold text-blue-600">🏥 HMS</span>
+            <Link
+              to="/"
+              className="flex items-center gap-3 group"
+            >
+              {/* Logo */}
+              <div className="relative">
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 blur-md opacity-30 group-hover:opacity-60 transition"></div>
+
+                <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-600 flex items-center justify-center shadow-xl">
+                  <FaHeartbeat className="text-white text-2xl" />
+                </div>
+              </div>
+
+              {/* Text */}
+              <div>
+                <h1 className="text-xl font-extrabold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                  MediCare
+                </h1>
+
+                <p className="text-[11px] uppercase tracking-widest text-gray-500">
+                  Hospital Management System
+                </p>
+              </div>
             </Link>
           </div>
 

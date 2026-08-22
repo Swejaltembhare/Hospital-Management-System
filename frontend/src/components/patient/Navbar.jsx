@@ -14,7 +14,7 @@ import {
   LogOut,
   Menu,
   X,
-  Hospital,
+  HeartPulse,  // Changed from Heart to HeartPulse
   ChevronDown,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -73,25 +73,6 @@ const Navbar = () => {
     { label: 'Logout', icon: LogOut, path: '/logout' },
   ];
 
-  // Notifications data
-  const notifications = [
-    {
-      id: 1,
-      title: 'Appointment confirmed with Dr. Smith',
-      time: '5 min ago',
-    },
-    {
-      id: 2,
-      title: 'Your lab results are ready',
-      time: '1 hour ago',
-    },
-    {
-      id: 3,
-      title: 'Reminder: Follow-up visit tomorrow',
-      time: '3 hours ago',
-    },
-  ];
-
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
@@ -123,16 +104,22 @@ const Navbar = () => {
                 className="flex items-center gap-3 group"
               >
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20 group-hover:shadow-blue-600/30 transition-shadow duration-300">
-                    <Hospital className="h-5 w-5 text-white" />
+                  {/* Glow */}
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 blur-md opacity-30 group-hover:opacity-50 transition"></div>
+
+                  {/* Logo */}
+                  <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-600 flex items-center justify-center shadow-xl">
+                    <HeartPulse className="h-6 w-6 text-white" />
                   </div>
                 </div>
+
                 <div className="hidden sm:block">
-                  <h2 className="text-lg font-semibold text-gray-900 leading-tight tracking-tight">
-                    MediCare HMS
-                  </h2>
-                  <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">
-                    Patient Portal
+                  <h1 className="text-xl font-extrabold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                    MediCare
+                  </h1>
+
+                  <p className="text-[11px] tracking-widest uppercase text-gray-500">
+                    Hospital Management System
                   </p>
                 </div>
               </NavLink>
@@ -147,8 +134,8 @@ const Navbar = () => {
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out ${
                       isActive
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 hover:bg-blue-700'
-                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-100/80'
+                        ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 hover:bg-teal-700'
+                        : 'text-gray-700 hover:text-teal-600 hover:bg-gray-100/80'
                     }`
                   }
                 >
@@ -180,7 +167,7 @@ const Navbar = () => {
                   aria-label="Profile menu"
                 >
                   <div className="relative">
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shadow-md shadow-blue-600/20">
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-semibold text-sm shadow-md shadow-teal-600/20">
                       {user?.fullName?.charAt(0)?.toUpperCase() || 'P'}
                     </div>
                     <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 rounded-full border-2 border-white"></span>
@@ -188,9 +175,6 @@ const Navbar = () => {
                   <div className="hidden lg:block text-left">
                     <p className="text-sm font-medium text-gray-900 leading-tight">
                       {user?.fullName || 'Patient'}
-                    </p>
-                    <p className="text-xs text-gray-500 leading-tight">
-                      ID: #{user?.patientId || '12345'}
                     </p>
                   </div>
                   <ChevronDown
@@ -218,9 +202,10 @@ const Navbar = () => {
                           {user?.email || 'patient@email.com'}
                         </p>
                         <div className="mt-2 flex items-center gap-2">
-                          <span className="inline-flex px-2.5 py-0.5 bg-blue-50 text-blue-700 text-xs rounded-full font-medium border border-blue-100">
+                          <span className="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-700 text-xs rounded-full font-medium border border-teal-100">
                             Patient
-                          </span>                        </div>
+                          </span>
+                        </div>
                       </div>
                       <div className="py-1.5">
                         {dropdownItems.map((item) => (
@@ -285,15 +270,21 @@ const Navbar = () => {
               {/* Drawer Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200/80">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
-                    <Hospital className="h-5 w-5 text-white" />
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 blur-md opacity-30"></div>
+
+                    <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-600 flex items-center justify-center shadow-xl">
+                      <HeartPulse className="h-6 w-6 text-white" />
+                    </div>
                   </div>
+
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900 leading-tight">
-                      MediCare HMS
+                    <h2 className="text-xl font-extrabold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                      MediCare
                     </h2>
-                    <p className="text-xs text-gray-500 font-medium tracking-wide uppercase">
-                      Patient Portal
+
+                    <p className="text-[11px] uppercase tracking-widest text-gray-500">
+                      Hospital Management System
                     </p>
                   </div>
                 </div>
@@ -307,9 +298,9 @@ const Navbar = () => {
               </div>
 
               {/* Drawer Profile */}
-              <div className="p-4 border-b border-gray-200/80 bg-gradient-to-br from-blue-50/50 to-transparent">
+              <div className="p-4 border-b border-gray-200/80 bg-gradient-to-br from-teal-50/50 to-transparent">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-lg shadow-md shadow-blue-600/20">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-semibold text-lg shadow-md shadow-teal-600/20">
                     {user?.fullName?.charAt(0)?.toUpperCase() || 'P'}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -319,11 +310,6 @@ const Navbar = () => {
                     <p className="text-xs text-gray-500 truncate">
                       {user?.email || 'patient@email.com'}
                     </p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="inline-flex px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                        ID: #{user?.patientId || '12345'}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -339,8 +325,8 @@ const Navbar = () => {
                       className={({ isActive }) =>
                         `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                           isActive
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                            : 'text-gray-700 hover:bg-gray-100/80 hover:text-blue-600'
+                            ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/20'
+                            : 'text-gray-700 hover:bg-gray-100/80 hover:text-teal-600'
                         }`
                       }
                     >
@@ -369,7 +355,7 @@ const Navbar = () => {
                       className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-200 ${
                         item.label === 'Logout'
                           ? 'text-red-600 hover:bg-red-50'
-                          : 'text-gray-700 hover:bg-gray-100/80 hover:text-blue-600'
+                          : 'text-gray-700 hover:bg-gray-100/80 hover:text-teal-600'
                       }`}
                     >
                       <item.icon className="h-5 w-5" />

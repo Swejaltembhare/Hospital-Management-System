@@ -41,7 +41,7 @@ const DoctorManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   const location = useLocation();
-const isPatient = location.pathname.startsWith("/patient");
+  const isPatient = location.pathname.startsWith("/patient");
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -53,11 +53,18 @@ const isPatient = location.pathname.startsWith("/patient");
     experience: "",
     consultationFee: "",
     password: "",
+    availableSlots: [
+      {
+        day: "",
+        startTime: "",
+        endTime: "",
+        isAvailable: true
+      }
+    ]
   });
 
   useEffect(() => {
     fetchDoctors();
-    // Focus search input on load
     if (searchInputRef.current) {
       setTimeout(() => searchInputRef.current.focus(), 100);
     }
@@ -67,22 +74,22 @@ const isPatient = location.pathname.startsWith("/patient");
     try {
       setLoading(true);
       const response = isPatient
-  ? await patientAPI.getDoctors()
-  : await adminAPI.getDoctors();
+        ? await patientAPI.getDoctors()
+        : await adminAPI.getDoctors();
 
-const doctorsData = isPatient
-  ? response.data.doctors
-  : response.data.data;
+      const doctorsData = isPatient
+        ? response.data.doctors
+        : response.data.data;
 
-setDoctors(doctorsData || []);
+      setDoctors(doctorsData || []);
 
-const uniqueDepts = [
-  ...new Set((doctorsData || []).map((d) => d.department)),
-];
+      const uniqueDepts = [
+        ...new Set((doctorsData || []).map((d) => d.department)),
+      ];
 
-setDepartments(uniqueDepts);
+      setDepartments(uniqueDepts);
 
-console.log(response.data);
+      console.log(response.data);
     } catch (error) {
       console.error("Error fetching doctors:", error);
       toast.error("Failed to load doctors");
@@ -99,18 +106,90 @@ console.log(response.data);
     }));
   };
 
+  const handleAvailabilityChange = (index, field, value) => {
+    const updatedSlots = [...formData.availableSlots];
+    updatedSlots[index][field] = value;
+    setFormData((prev) => ({
+      ...prev,
+      availableSlots: updatedSlots
+    }));
+  };
+
+  const addAvailabilitySlot = () => {
+    setFormData((prev) => ({
+      ...prev,
+      availableSlots: [
+        ...prev.availableSlots,
+        {
+          day: "",
+          startTime: "",
+          endTime: "",
+          isAvailable: true
+        }
+      ]
+    }));
+  };
+
+  const removeAvailabilitySlot = (index) => {
+    if (formData.availableSlots.length <= 1) {
+      toast.error("At least one availability slot is required");
+      return;
+    }
+    const updatedSlots = formData.availableSlots.filter((_, i) => i !== index);
+    setFormData((prev) => ({
+      ...prev,
+      availableSlots: updatedSlots
+    }));
+  };
+
+  const validateAvailabilitySlots = () => {
+    const slots = formData.availableSlots;
+    for (let i = 0; i < slots.length; i++) {
+      const slot = slots[i];
+      if (!slot.day) {
+        toast.error(`Please select a day for availability slot ${i + 1}`);
+        return false;
+      }
+      if (!slot.startTime) {
+        toast.error(`Please select start time for availability slot ${i + 1}`);
+        return false;
+      }
+      if (!slot.endTime) {
+        toast.error(`Please select end time for availability slot ${i + 1}`);
+        return false;
+      }
+      if (slot.startTime >= slot.endTime) {
+        toast.error(`End time must be greater than start time for slot ${i + 1}`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!validateAvailabilitySlots()) {
+      return;
+    }
+
     try {
+      // Clean the fullName - remove any "Dr." prefix if present
+      const cleanedName = formData.fullName.replace(/^Dr\.\s*/i, "").trim();
+
+      const doctorData = {
+        ...formData,
+        fullName: cleanedName
+      };
+
       if (editingDoctor) {
-        await adminAPI.updateDoctor(editingDoctor._id, formData);
+        await adminAPI.updateDoctor(editingDoctor._id, doctorData);
         toast.success("Doctor updated successfully");
       } else {
         console.log("========== FORM DATA ==========");
-        console.log(formData);
-        console.table(formData);
-        await adminAPI.createDoctor(formData);
+        console.log(doctorData);
+        console.table(doctorData);
+        await adminAPI.createDoctor(doctorData);
         toast.success("Doctor added successfully");
       }
 
@@ -164,6 +243,16 @@ console.log(response.data);
       qualification: doctor.qualification || "",
       experience: doctor.experience || "",
       consultationFee: doctor.consultationFee || "",
+      availableSlots: doctor.availableSlots && doctor.availableSlots.length > 0 
+        ? doctor.availableSlots 
+        : [
+            {
+              day: "",
+              startTime: "",
+              endTime: "",
+              isAvailable: true
+            }
+          ]
     });
     setShowModal(true);
   };
@@ -185,6 +274,14 @@ console.log(response.data);
       experience: "",
       consultationFee: "",
       password: "",
+      availableSlots: [
+        {
+          day: "",
+          startTime: "",
+          endTime: "",
+          isAvailable: true
+        }
+      ]
     });
   };
 
@@ -193,7 +290,6 @@ console.log(response.data);
     resetForm();
   };
 
-  // Filter doctors based on search and department
   const filteredDoctors = doctors.filter((doctor) => {
     const matchesSearch =
       doctor.user?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -205,17 +301,14 @@ console.log(response.data);
     return matchesSearch && matchesDepartment;
   });
 
-  // Pagination
   const totalPages = Math.ceil(filteredDoctors.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedDoctors = filteredDoctors.slice(startIndex, startIndex + itemsPerPage);
 
-  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, departmentFilter]);
 
-  // Statistics calculations
   const totalDoctors = doctors.length;
   const uniqueDepartments = new Set(doctors.map(d => d.department)).size;
   const availableDoctors = doctors.filter(d => d.isAvailable !== false).length;
@@ -223,7 +316,6 @@ console.log(response.data);
     ? Math.round(doctors.reduce((acc, d) => acc + (d.experience || 0), 0) / doctors.length) 
     : 0;
 
-  // Skeleton loading rows
   const SkeletonRow = () => (
     <div className="animate-pulse">
       <div className="flex items-center space-x-4 p-4 bg-white rounded-xl border border-gray-100">
@@ -245,7 +337,6 @@ console.log(response.data);
     </div>
   );
 
-  // Get color for department badge
   const getDepartmentColor = (department) => {
     const colors = {
       'Cardiology': 'bg-red-100 text-red-800 border-red-200',
@@ -259,12 +350,19 @@ console.log(response.data);
       'Gastroenterology': 'bg-teal-100 text-teal-800 border-teal-200',
       'Gynecology': 'bg-rose-100 text-rose-800 border-rose-200',
     };
-    return colors[department] || 'bg-green-100 text-green-800 border-green-200';
+    return colors[department] || 'bg-emerald-100 text-emerald-800 border-emerald-200';
+  };
+
+  // Helper function to clean doctor name
+  const cleanDoctorName = (name) => {
+    if (!name) return "Unknown";
+    // Remove "Dr." prefix if present
+    return name.replace(/^Dr\.\s*/i, "");
   };
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
@@ -274,9 +372,9 @@ console.log(response.data);
             <div className="h-12 w-32 bg-gray-200 rounded-xl animate-pulse"></div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 shadow-sm animate-pulse">
+              <div key={i} className="bg-white rounded-2xl p-5 shadow-sm animate-pulse">
                 <div className="flex items-center justify-between">
                   <div className="h-12 w-12 bg-gray-200 rounded-xl"></div>
                   <div className="h-8 w-16 bg-gray-200 rounded"></div>
@@ -307,24 +405,24 @@ console.log(response.data);
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50/30">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-teal-50/30">
+      <div className="w-full px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header Section */}
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="relative mb-8"
+          className="relative mb-6 sm:mb-8"
         >
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 bg-clip-text text-transparent tracking-tight">
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
                 {isPatient ? "Find Doctors" : "Doctors Management"}
               </h1>
-              <p className="text-slate-500 mt-1.5 text-sm font-medium">
+              <p className="text-slate-500 mt-1 text-sm font-medium">
                 {isPatient
-  ? "Find and book appointments with doctors"
-  : "Manage doctors, departments, and consultations"}
+                  ? "Find and book appointments with doctors"
+                  : "Manage doctors, departments, and consultations"}
               </p>
             </div>
             <motion.button
@@ -334,7 +432,7 @@ console.log(response.data);
                 resetForm();
                 setShowModal(true);
               }}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-2xl flex items-center gap-2.5 shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30 transition-all duration-300 font-medium"
+              className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl flex items-center gap-2 shadow-lg shadow-teal-600/20 hover:shadow-xl hover:shadow-teal-600/30 transition-all duration-300 font-medium text-sm sm:text-base w-full sm:w-auto justify-center"
             >
               <FaPlus className="text-sm" />
               <span>Add Doctor</span>
@@ -347,44 +445,40 @@ console.log(response.data);
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8"
+          className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8"
         >
           {[
             { 
               icon: FaUserMd, 
               label: "Total Doctors", 
               value: totalDoctors,
-              gradient: "from-blue-500 to-blue-600",
-              bgGradient: "from-blue-50 to-blue-100/50",
-              iconBg: "bg-blue-100",
-              iconColor: "text-blue-600"
+              bgColor: "bg-teal-50",
+              iconColor: "text-teal-600",
+              borderColor: "border-teal-200"
             },
             { 
               icon: FaHospital, 
               label: "Departments", 
               value: uniqueDepartments,
-              gradient: "from-purple-500 to-purple-600",
-              bgGradient: "from-purple-50 to-purple-100/50",
-              iconBg: "bg-purple-100",
-              iconColor: "text-purple-600"
+              bgColor: "bg-cyan-50",
+              iconColor: "text-cyan-600",
+              borderColor: "border-cyan-200"
             },
             { 
               icon: FaCheckCircle, 
               label: "Available", 
               value: availableDoctors,
-              gradient: "from-emerald-500 to-emerald-600",
-              bgGradient: "from-emerald-50 to-emerald-100/50",
-              iconBg: "bg-emerald-100",
-              iconColor: "text-emerald-600"
+              bgColor: "bg-emerald-50",
+              iconColor: "text-emerald-600",
+              borderColor: "border-emerald-200"
             },
             { 
               icon: FaStar, 
               label: "Avg Experience", 
               value: `${avgExperience} yrs`,
-              gradient: "from-amber-500 to-amber-600",
-              bgGradient: "from-amber-50 to-amber-100/50",
-              iconBg: "bg-amber-100",
-              iconColor: "text-amber-600"
+              bgColor: "bg-amber-50",
+              iconColor: "text-amber-600",
+              borderColor: "border-amber-200"
             },
           ].map((stat, index) => (
             <motion.div
@@ -392,21 +486,16 @@ console.log(response.data);
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 * (index + 1) }}
-              whileHover={{ y: -6, transition: { duration: 0.2 } }}
-              className={`bg-gradient-to-br ${stat.bgGradient} rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-white/50 backdrop-blur-sm`}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className={`bg-white rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-xl transition-all duration-300 border ${stat.borderColor}`}
             >
               <div className="flex items-start justify-between">
-                <div className={`${stat.iconBg} p-2.5 sm:p-3 rounded-xl`}>
-                  <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stat.iconColor}`} />
+                <div className={`${stat.bgColor} p-2.5 sm:p-3 rounded-xl`}>
+                  <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.iconColor}`} />
                 </div>
-                <motion.span 
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.3, delay: 0.2 + (index * 0.1) }}
-                  className={`text-2xl sm:text-3xl font-bold bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent`}
-                >
+                <span className={`text-xl sm:text-2xl lg:text-3xl font-bold ${stat.iconColor}`}>
                   {stat.value}
-                </motion.span>
+                </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-600 font-medium mt-3">{stat.label}</p>
             </motion.div>
@@ -418,12 +507,12 @@ console.log(response.data);
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-300 mb-8 border border-white/50"
+          className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6 sm:mb-8 border border-white/50"
         >
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4">
             <div className="md:col-span-5 relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <FaSearch className="text-slate-400 text-sm" />
+              <div className="absolute inset-y-0 left-0 pl-3 sm:pl-4 flex items-center pointer-events-none">
+                <FaSearch className="text-slate-400 text-xs sm:text-sm" />
               </div>
               <input
                 ref={searchInputRef}
@@ -431,7 +520,7 @@ console.log(response.data);
                 placeholder="Search by name, specialization, or department..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm placeholder:text-slate-400"
+                className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm placeholder:text-slate-400"
                 aria-label="Search doctors"
               />
             </div>
@@ -439,7 +528,7 @@ console.log(response.data);
               <select
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm text-slate-700 cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm text-slate-700 cursor-pointer"
                 aria-label="Filter by department"
               >
                 <option value="">All Departments</option>
@@ -450,7 +539,7 @@ console.log(response.data);
                 ))}
               </select>
             </div>
-            <div className="md:col-span-3 flex gap-3">
+            <div className="md:col-span-3 flex gap-2 sm:gap-3">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -461,14 +550,14 @@ console.log(response.data);
                     searchInputRef.current.focus();
                   }
                 }}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 text-sm font-medium"
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 text-xs sm:text-sm font-medium"
                 aria-label="Clear all filters"
               >
                 <FaTimes className="text-xs" />
-                Clear Filters
+                Clear
               </motion.button>
-              <div className="text-sm text-slate-500 flex items-center px-4 bg-slate-50 rounded-xl font-medium whitespace-nowrap">
-                {filteredDoctors.length} results
+              <div className="text-xs sm:text-sm text-slate-500 flex items-center px-3 sm:px-4 bg-slate-50 rounded-xl font-medium whitespace-nowrap">
+                {filteredDoctors.length}
               </div>
             </div>
           </div>
@@ -482,15 +571,14 @@ console.log(response.data);
           className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-white/50"
         >
           {filteredDoctors.length === 0 ? (
-            /* Empty State */
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-center py-16 px-4"
             >
-              <div className="text-7xl mb-6">👨‍⚕️</div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">No Doctors Found</h3>
-              <p className="text-slate-500 mb-6">Add your first doctor to begin managing your medical staff.</p>
+              <div className="text-6xl sm:text-7xl mb-6">👨‍⚕️</div>
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">No Doctors Found</h3>
+              <p className="text-slate-500 mb-6 text-sm sm:text-base">Add your first doctor to begin managing your medical staff.</p>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -498,7 +586,7 @@ console.log(response.data);
                   resetForm();
                   setShowModal(true);
                 }}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-2xl flex items-center gap-2 mx-auto shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30 transition-all duration-300 font-medium"
+                className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl flex items-center gap-2 mx-auto shadow-lg shadow-teal-600/20 hover:shadow-xl hover:shadow-teal-600/30 transition-all duration-300 font-medium text-sm sm:text-base"
               >
                 <FaPlus />
                 <span>Add Your First Doctor</span>
@@ -507,28 +595,28 @@ console.log(response.data);
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200/60">
+                <table className="w-full divide-y divide-slate-200/60">
                   <thead className="bg-slate-50/50">
                     <tr>
-                      <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                         Doctor
                       </th>
-                      <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider hidden sm:table-cell">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider hidden sm:table-cell">
                         Department
                       </th>
-                      <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider hidden md:table-cell">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider hidden md:table-cell">
                         Specialization
                       </th>
-                      <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider hidden lg:table-cell">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider hidden lg:table-cell">
                         Fee
                       </th>
-                      <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider hidden sm:table-cell">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider hidden sm:table-cell">
                         Experience
                       </th>
-                      <th className="px-4 sm:px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider hidden md:table-cell">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider hidden md:table-cell">
                         Status
                       </th>
-                      <th className="px-4 sm:px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -541,90 +629,91 @@ console.log(response.data);
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
                         whileHover={{ 
-                          backgroundColor: "rgba(59, 130, 246, 0.04)",
+                          backgroundColor: "rgba(13, 148, 136, 0.04)",
                           transition: { duration: 0.2 }
                         }}
-                        className="group hover:shadow-sm transition-all duration-200"
+                        className="hover:shadow-sm transition-all duration-200"
                       >
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12">
-                              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-200/50">
-                                <span className="text-white font-semibold text-sm sm:text-base">
+                            <div className="flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11">
+                              <div className="h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-md shadow-teal-200/50">
+                                <span className="text-white font-semibold text-xs sm:text-sm">
                                   {doctor.user?.fullName?.charAt(0) || "D"}
                                 </span>
                               </div>
                             </div>
-                            <div className="ml-3 min-w-0">
-                              <div className="text-sm font-semibold text-slate-900 truncate">
-                                Dr. {doctor.user?.fullName || "Unknown"}
+                            <div className="ml-2 sm:ml-3 min-w-0">
+                              {/* ✅ FIXED: Clean doctor name */}
+                              <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
+                                Dr. {cleanDoctorName(doctor.user?.fullName)}
                               </div>
-                              <div className="text-xs sm:text-sm text-slate-500 truncate">
+                              <div className="text-xs text-slate-500 truncate hidden sm:block">
                                 {doctor.user?.email || "No email"}
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getDepartmentColor(doctor.department)}`}>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
+                          <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium border ${getDepartmentColor(doctor.department)}`}>
                             {doctor.department}
                           </span>
                         </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-slate-600 hidden md:table-cell">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-slate-600 hidden md:table-cell">
                           {doctor.specialization}
                         </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900 hidden lg:table-cell">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-semibold text-slate-900 hidden lg:table-cell">
                           ₹{doctor.consultationFee}
                         </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                            <FaCalendarAlt className="mr-1.5 text-xs" />
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
+                          <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
+                            <FaCalendarAlt className="mr-1 text-xs" />
                             {doctor.experience} yrs
                           </span>
                         </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden md:table-cell">
+                          <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium border ${
                             doctor.isAvailable !== false 
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                               : 'bg-red-50 text-red-700 border-red-200'
                           }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                            <span className={`w-1.5 h-1.5 rounded-full mr-1 ${
                               doctor.isAvailable !== false ? 'bg-emerald-500' : 'bg-red-500'
                             }`}></span>
                             {doctor.isAvailable !== false ? 'Available' : 'Unavailable'}
                           </span>
                         </td>
-                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right">
-                          <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
+                          <div className="flex items-center justify-end gap-1 sm:gap-2">
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => handleViewDoctor(doctor)}
-                              className="p-1.5 sm:p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-all duration-200 group-hover:shadow-sm"
+                              className="p-1.5 sm:p-2 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-lg transition-all duration-200"
                               title="View Doctor"
-                              aria-label={`View Dr. ${doctor.user?.fullName}`}
+                              aria-label={`View Dr. ${cleanDoctorName(doctor.user?.fullName)}`}
                             >
-                              <FaEye size={13} />
+                              <FaEye size={12} className="sm:w-3.5 sm:h-3.5" />
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => handleEdit(doctor)}
-                              className="p-1.5 sm:p-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-all duration-200 group-hover:shadow-sm"
+                              className="p-1.5 sm:p-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-all duration-200"
                               title="Edit Doctor"
-                              aria-label={`Edit Dr. ${doctor.user?.fullName}`}
+                              aria-label={`Edit Dr. ${cleanDoctorName(doctor.user?.fullName)}`}
                             >
-                              <FaEdit size={13} />
+                              <FaEdit size={12} className="sm:w-3.5 sm:h-3.5" />
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => confirmDelete(doctor)}
-                              className="p-1.5 sm:p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all duration-200 group-hover:shadow-sm"
+                              className="p-1.5 sm:p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all duration-200"
                               title="Delete Doctor"
-                              aria-label={`Delete Dr. ${doctor.user?.fullName}`}
+                              aria-label={`Delete Dr. ${cleanDoctorName(doctor.user?.fullName)}`}
                             >
-                              <FaTrash size={13} />
+                              <FaTrash size={12} className="sm:w-3.5 sm:h-3.5" />
                             </motion.button>
                           </div>
                         </td>
@@ -634,25 +723,26 @@ console.log(response.data);
                 </table>
               </div>
 
-              {/* Mobile Cards View (visible on smaller screens) */}
+              {/* Mobile Cards View */}
               <div className="sm:hidden divide-y divide-slate-100">
                 {paginatedDoctors.map((doctor) => (
                   <motion.div
                     key={`mobile-${doctor._id}`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="p-4 hover:bg-blue-50/30 transition-colors"
+                    className="p-4 hover:bg-teal-50/30 transition-colors"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-200/50">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-md shadow-teal-200/50 flex-shrink-0">
                           <span className="text-white font-semibold text-sm">
                             {doctor.user?.fullName?.charAt(0) || "D"}
                           </span>
                         </div>
                         <div>
+                          {/* ✅ FIXED: Clean doctor name */}
                           <div className="text-sm font-semibold text-slate-900">
-                            Dr. {doctor.user?.fullName || "Unknown"}
+                            Dr. {cleanDoctorName(doctor.user?.fullName)}
                           </div>
                           <div className="text-xs text-slate-500">
                             {doctor.specialization}
@@ -674,7 +764,7 @@ console.log(response.data);
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getDepartmentColor(doctor.department)}`}>
                         {doctor.department}
                       </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
                         <FaCalendarAlt className="mr-1 text-xs" />
                         {doctor.experience} yrs
                       </span>
@@ -687,7 +777,7 @@ console.log(response.data);
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleViewDoctor(doctor)}
-                        className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
+                        className="p-2 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-lg transition-colors"
                         title="View"
                       >
                         <FaEye size={12} />
@@ -717,29 +807,29 @@ console.log(response.data);
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 sm:px-6 py-4 border-t border-slate-100">
-                  <p className="text-sm text-slate-500">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-3 sm:px-6 py-3 sm:py-4 border-t border-slate-100">
+                  <p className="text-xs sm:text-sm text-slate-500">
                     Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredDoctors.length)} of {filteredDoctors.length} doctors
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5 sm:gap-2">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 sm:p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Previous page"
                     >
-                      <FaChevronLeft size={14} />
+                      <FaChevronLeft size={12} className="sm:w-3.5 sm:h-3.5" />
                     </motion.button>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       {[...Array(totalPages)].map((_, i) => (
                         <button
                           key={i}
                           onClick={() => setCurrentPage(i + 1)}
-                          className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                             currentPage === i + 1
-                              ? 'bg-blue-600 text-white'
+                              ? 'bg-teal-600 text-white'
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
                           aria-label={`Page ${i + 1}`}
@@ -754,10 +844,10 @@ console.log(response.data);
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 sm:p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Next page"
                     >
-                      <FaChevronRight size={14} />
+                      <FaChevronRight size={12} className="sm:w-3.5 sm:h-3.5" />
                     </motion.button>
                   </div>
                 </div>
@@ -774,7 +864,7 @@ console.log(response.data);
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4"
             onClick={handleCloseModal}
           >
             <motion.div
@@ -787,9 +877,9 @@ console.log(response.data);
               role="dialog"
               aria-labelledby="modal-title"
             >
-              <div className="p-6 sm:p-8">
+              <div className="p-5 sm:p-8">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 id="modal-title" className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                  <h2 id="modal-title" className="text-xl sm:text-2xl font-bold text-slate-900">
                     {editingDoctor ? "Edit Doctor" : "Add New Doctor"}
                   </h2>
                   <motion.button
@@ -799,12 +889,12 @@ console.log(response.data);
                     className="text-slate-400 hover:text-slate-600 transition-colors duration-200 p-2 hover:bg-slate-100 rounded-xl"
                     aria-label="Close modal"
                   >
-                    <FaTimes size={20} />
+                    <FaTimes size={18} className="sm:w-5 sm:h-5" />
                   </motion.button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         Full Name *
@@ -815,9 +905,11 @@ console.log(response.data);
                         value={formData.fullName}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        placeholder="e.g., Swejal Tembhare"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
+                      <p className="text-xs text-slate-400 mt-1">Don't add "Dr." prefix, it will be added automatically</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -829,7 +921,7 @@ console.log(response.data);
                         value={formData.email}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -843,7 +935,7 @@ console.log(response.data);
                         value={formData.phoneNumber}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -857,7 +949,7 @@ console.log(response.data);
                         value={formData.password}
                         onChange={handleInputChange}
                         required={!editingDoctor}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required={!editingDoctor}
                       />
                     </div>
@@ -871,7 +963,7 @@ console.log(response.data);
                         value={formData.department}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -885,7 +977,7 @@ console.log(response.data);
                         value={formData.specialization}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -899,7 +991,7 @@ console.log(response.data);
                         value={formData.qualification}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -914,11 +1006,11 @@ console.log(response.data);
                         onChange={handleInputChange}
                         required
                         min="0"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
-                    <div className="md:col-span-2">
+                    <div className="sm:col-span-2">
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         Consultation Fee (₹) *
                       </label>
@@ -929,19 +1021,118 @@ console.log(response.data);
                         onChange={handleInputChange}
                         required
                         min="0"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
                   </div>
 
-                  <div className="flex justify-end space-x-3 pt-6 border-t border-slate-100">
+                  {/* Doctor Availability Section */}
+                  <div className="border-t border-slate-200 pt-5 sm:pt-6 mt-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-slate-800 flex items-center gap-2">
+                        <FaRegClock className="text-teal-600" />
+                        Doctor Availability
+                      </h3>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        type="button"
+                        onClick={addAvailabilitySlot}
+                        className="bg-teal-50 hover:bg-teal-100 text-teal-600 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex items-center gap-2 transition-all duration-200 text-xs sm:text-sm font-medium border border-teal-200 w-full sm:w-auto justify-center"
+                      >
+                        <FaPlus size={11} className="sm:w-3.5 sm:h-3.5" />
+                        Add Availability
+                      </motion.button>
+                    </div>
+
+                    {formData.availableSlots.map((slot, index) => (
+                      <div key={index} className="bg-slate-50 rounded-xl p-3 sm:p-4 mb-3 border border-slate-200">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1">
+                              Day *
+                            </label>
+                            <select
+                              value={slot.day}
+                              onChange={(e) => handleAvailabilityChange(index, "day", e.target.value)}
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-xs sm:text-sm"
+                              required
+                            >
+                              <option value="">Select Day</option>
+                              <option value="Monday">Monday</option>
+                              <option value="Tuesday">Tuesday</option>
+                              <option value="Wednesday">Wednesday</option>
+                              <option value="Thursday">Thursday</option>
+                              <option value="Friday">Friday</option>
+                              <option value="Saturday">Saturday</option>
+                              <option value="Sunday">Sunday</option>
+                            </select>
+                          </div>
+                          <div className="flex items-end gap-2">
+                            <div className="flex-1">
+                              <label className="block text-xs font-medium text-slate-600 mb-1">
+                                Start *
+                              </label>
+                              <input
+                                type="time"
+                                value={slot.startTime}
+                                onChange={(e) => handleAvailabilityChange(index, "startTime", e.target.value)}
+                                className="w-full bg-white border border-slate-200 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-xs sm:text-sm"
+                                required
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="block text-xs font-medium text-slate-600 mb-1">
+                                End *
+                              </label>
+                              <input
+                                type="time"
+                                value={slot.endTime}
+                                onChange={(e) => handleAvailabilityChange(index, "endTime", e.target.value)}
+                                className="w-full bg-white border border-slate-200 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-xs sm:text-sm"
+                                required
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-2 sm:mt-3">
+                          <label className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={slot.isAvailable}
+                              onChange={(e) => handleAvailabilityChange(index, "isAvailable", e.target.checked)}
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
+                            />
+                            Available
+                          </label>
+                          {formData.availableSlots.length > 1 && (
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              type="button"
+                              onClick={() => removeAvailabilitySlot(index)}
+                              className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-lg transition-colors"
+                              aria-label="Remove availability slot"
+                            >
+                              <FaTrash size={12} className="sm:w-3.5 sm:h-3.5" />
+                            </motion.button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    <p className="text-xs text-slate-500 mt-2">
+                      * All fields are required. End time must be greater than start time.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 sm:pt-6 border-t border-slate-100">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       type="button"
                       onClick={handleCloseModal}
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 px-6 rounded-xl transition-all duration-200 font-medium"
+                      className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 px-6 rounded-xl transition-all duration-200 font-medium text-sm"
                     >
                       Cancel
                     </motion.button>
@@ -949,7 +1140,7 @@ console.log(response.data);
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       type="submit"
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-2.5 px-8 rounded-xl transition-all duration-200 font-medium shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30"
+                      className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white py-2.5 px-8 rounded-xl transition-all duration-200 font-medium shadow-lg shadow-teal-600/20 hover:shadow-xl hover:shadow-teal-600/30 text-sm"
                     >
                       {editingDoctor ? "Update Doctor" : "Save Doctor"}
                     </motion.button>
@@ -968,7 +1159,7 @@ console.log(response.data);
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4"
             onClick={() => setShowDeleteModal(false)}
           >
             <motion.div
@@ -976,27 +1167,27 @@ console.log(response.data);
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", damping: 25 }}
-              className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl"
+              className="bg-white rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-labelledby="delete-title"
             >
               <div className="text-center">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FaTrash className="text-red-600 text-2xl" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaTrash className="text-red-600 text-xl sm:text-2xl" />
                 </div>
-                <h3 id="delete-title" className="text-xl font-bold text-slate-900 mb-2">
+                <h3 id="delete-title" className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
                   Delete Doctor
                 </h3>
-                <p className="text-slate-500 mb-6">
-                  Are you sure you want to delete <span className="font-semibold text-slate-900">Dr. {doctorToDelete.user?.fullName}</span>? This action cannot be undone.
+                <p className="text-sm sm:text-base text-slate-500 mb-6">
+                  Are you sure you want to delete <span className="font-semibold text-slate-900">Dr. {cleanDoctorName(doctorToDelete.user?.fullName)}</span>? This action cannot be undone.
                 </p>
-                <div className="flex gap-3 justify-center">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setShowDeleteModal(false)}
-                    className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors font-medium"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors font-medium text-sm"
                   >
                     Cancel
                   </motion.button>
@@ -1004,7 +1195,7 @@ console.log(response.data);
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleDelete}
-                    className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-medium shadow-lg shadow-red-600/20"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-medium shadow-lg shadow-red-600/20 text-sm"
                   >
                     Delete
                   </motion.button>
@@ -1019,7 +1210,6 @@ console.log(response.data);
       <AnimatePresence>
         {showSideDrawer && selectedDoctor && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1028,20 +1218,18 @@ console.log(response.data);
               onClick={() => setShowSideDrawer(false)}
             />
             
-            {/* Drawer */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30 }}
-              className="fixed right-0 top-0 h-full w-full sm:w-[400px] lg:w-[480px] bg-white shadow-2xl z-50 overflow-y-auto"
+              className="fixed right-0 top-0 h-full w-full sm:w-[380px] lg:w-[440px] bg-white shadow-2xl z-50 overflow-y-auto"
               role="dialog"
               aria-labelledby="drawer-title"
             >
-              <div className="p-6">
-                {/* Header */}
+              <div className="p-5 sm:p-6">
                 <div className="flex justify-between items-start mb-6">
-                  <h2 id="drawer-title" className="text-2xl font-bold text-slate-900">
+                  <h2 id="drawer-title" className="text-xl sm:text-2xl font-bold text-slate-900">
                     Doctor Details
                   </h2>
                   <motion.button
@@ -1051,20 +1239,20 @@ console.log(response.data);
                     className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-slate-100 rounded-xl"
                     aria-label="Close drawer"
                   >
-                    <FaTimes size={20} />
+                    <FaTimes size={18} className="sm:w-5 sm:h-5" />
                   </motion.button>
                 </div>
 
-                {/* Avatar and Basic Info */}
-                <div className="flex items-center gap-4 mb-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl">
-                  <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-200/50 flex-shrink-0">
-                    <span className="text-white text-2xl font-bold">
+                <div className="flex items-center gap-4 mb-6 p-4 bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl">
+                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-200/50 flex-shrink-0">
+                    <span className="text-white text-xl sm:text-2xl font-bold">
                       {selectedDoctor.user?.fullName?.charAt(0) || "D"}
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">
-                      Dr. {selectedDoctor.user?.fullName || "Unknown"}
+                    {/* ✅ FIXED: Clean doctor name */}
+                    <h3 className="text-base sm:text-xl font-bold text-slate-900">
+                      Dr. {cleanDoctorName(selectedDoctor.user?.fullName)}
                     </h3>
                     <p className="text-sm text-slate-500">{selectedDoctor.specialization}</p>
                     <span className={`inline-flex items-center mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
@@ -1080,55 +1268,53 @@ console.log(response.data);
                   </div>
                 </div>
 
-                {/* Details Grid */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-xs text-slate-500 font-medium">Email</p>
-                      <p className="text-sm text-slate-900 font-medium truncate">
+                      <p className="text-xs sm:text-sm text-slate-900 font-medium truncate">
                         <FaEnvelope className="inline mr-1.5 text-slate-400" size={12} />
                         {selectedDoctor.user?.email || "N/A"}
                       </p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-xs text-slate-500 font-medium">Phone</p>
-                      <p className="text-sm text-slate-900 font-medium">
+                      <p className="text-xs sm:text-sm text-slate-900 font-medium">
                         <FaPhone className="inline mr-1.5 text-slate-400" size={12} />
                         {selectedDoctor.user?.phoneNumber || "N/A"}
                       </p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-xs text-slate-500 font-medium">Department</p>
-                      <p className="text-sm text-slate-900 font-medium">
+                      <p className="text-xs sm:text-sm text-slate-900 font-medium">
                         <FaHospital className="inline mr-1.5 text-slate-400" size={12} />
                         {selectedDoctor.department}
                       </p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-xs text-slate-500 font-medium">Qualification</p>
-                      <p className="text-sm text-slate-900 font-medium">
+                      <p className="text-xs sm:text-sm text-slate-900 font-medium">
                         <FaGraduationCap className="inline mr-1.5 text-slate-400" size={12} />
                         {selectedDoctor.qualification}
                       </p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-xs text-slate-500 font-medium">Experience</p>
-                      <p className="text-sm text-slate-900 font-medium">
+                      <p className="text-xs sm:text-sm text-slate-900 font-medium">
                         <FaCalendarAlt className="inline mr-1.5 text-slate-400" size={12} />
                         {selectedDoctor.experience} years
                       </p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-xs text-slate-500 font-medium">Consultation Fee</p>
-                      <p className="text-sm text-slate-900 font-medium">
+                      <p className="text-xs sm:text-sm text-slate-900 font-medium">
                         <FaMoneyBillWave className="inline mr-1.5 text-slate-400" size={12} />
                         ₹{selectedDoctor.consultationFee}
                       </p>
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t border-slate-100">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-slate-100">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -1136,7 +1322,7 @@ console.log(response.data);
                         setShowSideDrawer(false);
                         handleEdit(selectedDoctor);
                       }}
-                      className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl transition-colors font-medium flex items-center justify-center gap-2"
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl transition-colors font-medium flex items-center justify-center gap-2 text-sm"
                     >
                       <FaEdit size={14} />
                       Edit Doctor
@@ -1148,7 +1334,7 @@ console.log(response.data);
                         setShowSideDrawer(false);
                         confirmDelete(selectedDoctor);
                       }}
-                      className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl transition-colors font-medium flex items-center justify-center gap-2"
+                      className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl transition-colors font-medium flex items-center justify-center gap-2 text-sm"
                     >
                       <FaTrash size={14} />
                       Delete

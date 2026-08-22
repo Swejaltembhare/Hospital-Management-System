@@ -1,6 +1,5 @@
 import { Outlet } from "react-router-dom";
 import PatientNavbar from "../components/patient/Navbar";
-import Footer from "../components/Footer";
 
 const PatientLayout = () => {
   return (
@@ -11,9 +10,6 @@ const PatientLayout = () => {
       <main className="flex-1 p-6">
         <Outlet />
       </main>
-
-      <Footer />
-
     </div>
   );
 };

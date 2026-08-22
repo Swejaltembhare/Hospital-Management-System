@@ -6,7 +6,6 @@ import Patient from "../models/Patient.js";
 import Appointment from "../models/Appointment.js";
 import Admin from "../models/Admin.js";
 import { logUserActivity } from "../utils/authHelpers.js";
-import bcrypt from "bcryptjs";
 
 // ============================================
 // DOCTOR MANAGEMENT - CRUD Operations
@@ -99,7 +98,7 @@ export const getDoctorById = async (req, res) => {
   }
 };
 
-// Create new doctor
+// Create new doctor - FIXED VERSION
 export const createDoctor = async (req, res) => {
   try {
     const {
@@ -112,7 +111,9 @@ export const createDoctor = async (req, res) => {
       qualification,
       experience,
       consultationFee,
+      availableSlots,
     } = req.body;
+
     // Validate required fields
     if (
       !fullName ||
@@ -144,14 +145,13 @@ export const createDoctor = async (req, res) => {
         });
       }
     } else {
-      // Create new user with doctor role
-      const hashedPassword = await bcrypt.hash(password, 10);
-
+      // ✅ FIX: Create new user with doctor role
+      // Let User model's pre('save') hook handle password hashing
       user = await User.create({
         fullName,
         email,
         phoneNumber,
-        password: hashedPassword,
+        password, // Plain password - model will hash it automatically
         role: "doctor",
         isActive: true,
       });
@@ -168,6 +168,7 @@ export const createDoctor = async (req, res) => {
       qualification,
       experience: parseInt(experience),
       consultationFee: parseInt(consultationFee),
+      availableSlots,
       isAvailable: true,
       isVerified: true,
     });
