@@ -47,6 +47,15 @@ app.use(
   })
 );
 
+// Handle preflight requests explicitly to prevent Vercel redirect issues (using regex to avoid path-to-regexp error)
+app.options(/.*/, (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
+
 // Apply rate limiting middleware to prevent API abuse and brute-force attacks
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
