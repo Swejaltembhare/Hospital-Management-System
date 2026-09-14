@@ -218,7 +218,6 @@ const QuickActions = () => {
       </div>
 
       {/* Hospital Showcase Imagery Container */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 space-y-6">
         <div className="w-full overflow-hidden rounded-xl shadow-xs">
           <img
             src="/images/hospital.png"
@@ -229,7 +228,7 @@ const QuickActions = () => {
 
         <div className="w-full overflow-hidden rounded-xl shadow-xs">
           <img
-            src="/images/doctor-patient.png"
+            src="/images/hospital.png"
             alt="Doctor consulting patient"
             className="w-full h-[220px] object-cover rounded-xl hover:scale-102 transition-transform duration-300"
           />
@@ -237,12 +236,11 @@ const QuickActions = () => {
 
         <div className="w-full overflow-hidden rounded-xl shadow-xs">
           <img
-            src="/images/medical.png"
+            src="/images/hospital2.png"
             alt="Medical equipment"
             className="w-full h-[220px] object-cover rounded-xl hover:scale-102 transition-transform duration-300"
           />
         </div>
-      </div>
     </div>
   );
 };

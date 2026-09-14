@@ -13,7 +13,6 @@ import {
   Building2,
   ChevronRight,
   LayoutDashboard,
-  Building,
 } from "lucide-react";
 import Analytics from "../../components/admin/Analytics";
 import QuickActions from "../../components/admin/QuickActions";
@@ -107,13 +106,6 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showAllDoctors, setShowAllDoctors] = useState(false);
   const [showAllPatients, setShowAllPatients] = useState(false);
-
-  // Local images located in public/images folder
-  const hospitalImages = [
-    { src: "/images/hospital.png", title: "Hospital Center", subtitle: "Main Medical Facility" },
-    { src: "/images/hospital1.png", title: "Care & Consultation", subtitle: "Specialist Care Unit" },
-    { src: "/images/hospital2.png", title: "Healthcare Services", subtitle: "24/7 Operations" },
-  ];
 
   useEffect(() => {
     let isMounted = true;
@@ -209,65 +201,20 @@ const AdminDashboard = () => {
           ))}
         </motion.div>
 
-        {/* Main Content Layout with Hospital Showcase Cards */}
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-5 items-start">
-          
-          {/* Left Column: Analytics & Quick Actions */}
-          <div className="xl:col-span-3 space-y-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.15 }}
-              className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch"
-            >
-              <div className="lg:col-span-2 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
-                <Analytics />
-              </div>
-              <div className="lg:col-span-1 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
-                <QuickActions />
-              </div>
-            </motion.div>
+        {/* Main Content Layout: Analytics & Quick Actions */}
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch"
+        >
+          <div className="lg:col-span-2 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+            <Analytics />
           </div>
-
-          {/* Right Column: Hospital Image Cards Showcase */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-            className="space-y-4"
-          >
-            <div className="flex items-center gap-2 px-1">
-              <Building className="w-4 h-4 text-emerald-700" />
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-                MediCare Facilities
-              </h3>
-            </div>
-
-            {hospitalImages.map((img, idx) => (
-              <div
-                key={`img-card-${idx}`}
-                className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden group hover:shadow-md transition-all duration-300"
-              >
-                <div className="relative h-44 overflow-hidden bg-slate-100">
-                  <img
-                    src={img.src}
-                    alt={img.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/10 to-transparent" />
-                  <div className="absolute bottom-3 left-4 right-4 text-white">
-                    <p className="text-sm font-extrabold leading-tight">{img.title}</p>
-                    <p className="text-[11px] text-slate-200 font-medium">{img.subtitle}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </motion.div>
-
-        </div>
+          <div className="lg:col-span-1 bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+            <QuickActions />
+          </div>
+        </motion.div>
 
         {/* Data Activity Lists */}
         <motion.div 
