@@ -1,6 +1,6 @@
-// models/Doctor.js
 import mongoose from "mongoose";
 
+// Define database schema for Doctor profiles and time slot schedules
 const doctorSchema = new mongoose.Schema(
   {
     user: {
@@ -68,18 +68,10 @@ const doctorSchema = new mongoose.Schema(
         startTime: {
           type: String,
           required: true,
-          match: [
-            /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
-            "Please enter valid time format HH:MM",
-          ],
         },
         endTime: {
           type: String,
           required: true,
-          match: [
-            /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
-            "Please enter valid time format HH:MM",
-          ],
         },
         isAvailable: {
           type: Boolean,
@@ -106,19 +98,22 @@ const doctorSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  },
+  }
 );
 
-// Update average rating before save
+// Calculate average doctor rating prior to document save operations
 doctorSchema.pre("save", function () {
   if (this.ratings && this.ratings.length > 0) {
     const sum = this.ratings.reduce((acc, curr) => acc + curr.rating, 0);
-
     this.averageRating = Number((sum / this.ratings.length).toFixed(1));
-
     this.totalRatings = this.ratings.length;
   }
 });
+
+// Add database indexes for optimized search performance
+doctorSchema.index({ department: 1 });
+doctorSchema.index({ isVerified: 1, isAvailable: 1 });
+doctorSchema.index({ averageRating: -1 });
 
 const Doctor = mongoose.model("Doctor", doctorSchema);
 export default Doctor;

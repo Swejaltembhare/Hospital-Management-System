@@ -1,6 +1,6 @@
-// models/Admin.js
 import mongoose from 'mongoose';
 
+// Define database schema for Admin profiles and granular permission controls
 const adminSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -30,12 +30,18 @@ const adminSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Pre-save middleware to set default permissions
-adminSchema.pre('save', function(next) {
-  if (this.isNew && this.permissions.length === 0) {
-    this.permissions = ['manage_users', 'manage_doctors', 'manage_patients', 'view_reports'];
+// Configure default permissions automatically for new Admin documents
+adminSchema.pre('save', function() {
+  if (this.isNew) {
+    if (this.isSuperAdmin) {
+      this.permissions = [
+        'manage_users', 'manage_doctors', 'manage_patients', 'manage_appointments',
+        'view_reports', 'manage_system', 'manage_billing', 'manage_medicines'
+      ];
+    } else if (!this.permissions || this.permissions.length === 0) {
+      this.permissions = ['manage_users', 'manage_doctors', 'manage_patients', 'view_reports'];
+    }
   }
-  next();
 });
 
 const Admin = mongoose.model('Admin', adminSchema);

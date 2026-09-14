@@ -1,63 +1,49 @@
-// src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from "react";
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Add token interceptor
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
+import api from "../services/api";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [token, setToken] = useState(() => localStorage.getItem("token"));
 
+  // Synchronize authenticated user state from local storage on mount
   useEffect(() => {
     if (token) {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error("Failed to parse stored user session data:", e);
+          localStorage.removeItem("user");
+        }
       }
     }
     setLoading(false);
   }, [token]);
 
+  // Authenticate user by role-specific login route
   const login = async (email, password, role) => {
     try {
-      console.log(`Attempting login: /api/auth/${role}/login`);
       const response = await api.post(`/auth/${role}/login`, {
         email,
         password,
       });
 
       if (response.data.success) {
-        const { token, user } = response.data;
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("userRole", user.role);
-        setToken(token);
-        setUser(user);
-        return { success: true, user };
+        const { token: authToken, user: authUser } = response.data;
+        localStorage.setItem("token", authToken);
+        localStorage.setItem("user", JSON.stringify(authUser));
+        localStorage.setItem("userRole", authUser.role);
+
+        setToken(authToken);
+        setUser(authUser);
+        return { success: true, user: authUser };
       }
       return { success: false, error: "Login failed" };
     } catch (error) {
-      console.error("Login error:", error.response || error);
       return {
         success: false,
         error: error.response?.data?.error || "Login failed. Please try again.",
@@ -65,44 +51,34 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Register new patient or doctor account
   const register = async (userData) => {
     try {
-      console.log("Attempting registration:", userData);
-const response = await api.post(
-   `/auth/${userData.accountType}/register`,
-   userData
-);
+      const accountType = userData.accountType || "patient";
+      const response = await api.post(`/auth/${accountType}/register`, userData);
+
       if (response.data.success) {
-        const { token, user } = response.data;
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("userRole", user.role);
-        setToken(token);
-        setUser(user);
-        return { success: true, user };
+        const { token: authToken, user: authUser } = response.data;
+        localStorage.setItem("token", authToken);
+        localStorage.setItem("user", JSON.stringify(authUser));
+        localStorage.setItem("userRole", authUser.role);
+
+        setToken(authToken);
+        setUser(authUser);
+        return { success: true, user: authUser };
       }
       return { success: false, error: "Registration failed" };
     } catch (error) {
-      console.log("=========== REGISTRATION ERROR ===========");
-      console.log("Status:", error.response?.status);
-      console.log("Response:", error.response?.data);
+      const errorMsg =
+        error.response?.data?.error ||
+        error.response?.data?.errors?.map((e) => e.message).join(", ") ||
+        "Registration failed";
 
-      // 👇 Ye line add karo
-      console.table(error.response?.data?.errors);
-
-      console.log("Full Error:", error);
-      console.log("==========================================");
-
-      return {
-  success: false,
-  error:
-    error.response?.data?.error ||
-    error.response?.data?.errors?.map((e) => e.message).join(", ") ||
-    "Registration failed",
-};
+      return { success: false, error: errorMsg };
     }
   };
 
+  // Revoke active user authentication state
   const logout = async () => {
     try {
       await api.post("/auth/logout");
@@ -117,6 +93,7 @@ const response = await api.post(
     }
   };
 
+  // Update authenticated user state in application memory and storage
   const updateUser = (updatedUser) => {
     setUser(updatedUser);
     localStorage.setItem("user", JSON.stringify(updatedUser));

@@ -1,16 +1,14 @@
-// controllers/analyticsController.js
 import User from '../models/User.js';
 import Appointment from '../models/Appointment.js';
 import Doctor from '../models/Doctor.js';
-import Patient from '../models/Patient.js';
 
-// ==================== APPOINTMENT TREND ====================
+// Aggregate appointment counts grouped by month over the last six months
 export const getAppointmentTrend = async (req, res) => {
   try {
-    // Get last 6 months of appointment data
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    
+    sixMonthsAgo.setDate(1);
+
     const appointments = await Appointment.aggregate([
       {
         $match: {
@@ -29,7 +27,6 @@ export const getAppointmentTrend = async (req, res) => {
       { $sort: { '_id.year': 1, '_id.month': 1 } }
     ]);
 
-    // Format data for chart
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const result = appointments.map(item => ({
       month: monthNames[item._id.month - 1],
@@ -43,12 +40,13 @@ export const getAppointmentTrend = async (req, res) => {
   }
 };
 
-// ==================== PATIENT REGISTRATION ====================
+// Aggregate new patient registrations grouped by month over the last six months
 export const getPatientRegistration = async (req, res) => {
   try {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    
+    sixMonthsAgo.setDate(1);
+
     const patients = await User.aggregate([
       {
         $match: {
@@ -81,7 +79,7 @@ export const getPatientRegistration = async (req, res) => {
   }
 };
 
-// ==================== DEPARTMENT DATA ====================
+// Group doctor count breakdown by medical department
 export const getDepartmentData = async (req, res) => {
   try {
     const departments = await Doctor.aggregate([
@@ -106,7 +104,7 @@ export const getDepartmentData = async (req, res) => {
   }
 };
 
-// ==================== APPOINTMENT STATUS ====================
+// Aggregate appointment distribution across status types
 export const getAppointmentStatus = async (req, res) => {
   try {
     const statusData = await Appointment.aggregate([
@@ -131,7 +129,6 @@ export const getAppointmentStatus = async (req, res) => {
       value: item.count
     }));
 
-    // If no data, return default values
     if (result.length === 0) {
       return res.status(200).json([
         { name: 'Pending', value: 0 },
@@ -148,19 +145,17 @@ export const getAppointmentStatus = async (req, res) => {
   }
 };
 
-// ==================== DOCTOR PERFORMANCE ====================
+// Fetch top doctor performance metrics based on completed appointment counts
 export const getDoctorPerformance = async (req, res) => {
   try {
-    // Get doctor performance data
     const doctors = await Doctor.find()
       .populate('user', 'fullName')
       .limit(10);
 
-    // Get appointment counts for each doctor
     const doctorStats = await Promise.all(
       doctors.map(async (doctor) => {
         const appointmentCount = await Appointment.countDocuments({
-          doctorId: doctor._id
+          doctor: doctor._id
         });
         return {
           name: doctor.user?.fullName || 'Unknown',
@@ -170,10 +165,8 @@ export const getDoctorPerformance = async (req, res) => {
       })
     );
 
-    // Sort by appointment count descending
     const sorted = doctorStats.sort((a, b) => b.patients - a.patients);
-    
-    // If no data, return sample data
+
     if (sorted.length === 0) {
       return res.status(200).json([
         { name: 'No Data', patients: 0, appointments: 0 }

@@ -1,123 +1,62 @@
-// // routes/adminRoutes.js
-// import express from 'express';
-// import { authenticate, authorize } from '../middleware/auth.js';
-// import {
-//   validateCreateDoctor,
-//   validateUpdateDoctor
-// } from "../middleware/validation.js";
-// import * as adminController from '../controllers/adminController.js';
-
-// const router = express.Router();
-
-// // All routes require admin authentication
-// router.use(authenticate);
-// router.use(authorize('admin'));
-
-// // ============================================
-// // DOCTOR MANAGEMENT - CRUD Operations
-// // ============================================
-
-// // Get all doctors
-// router.get('/doctors', adminController.getAllDoctors);
-
-// // Get single doctor by ID
-// router.get('/doctors/:id', adminController.getDoctorById);
-
-// // Create new doctor
-// router.post('/doctors', validateCreateDoctor, adminController.createDoctor);
-
-// // Update doctor
-// router.put(
-//   "/doctors/:id",
-//   validateUpdateDoctor,
-//   adminController.updateDoctor
-// );
-
-// // Delete doctor
-// router.delete('/doctors/:id', adminController.deleteDoctor);
-
-// // ============================================
-// // PATIENT MANAGEMENT
-// // ============================================
-// router.get('/patients', adminController.getAllPatients);
-// router.get('/patients/:id', adminController.getPatientById);
-
-// // ============================================
-// // DASHBOARD
-// // ============================================
-// router.get('/dashboard/stats', adminController.getDashboardStats);
-// router.get('/dashboard/recent-activity', adminController.getRecentActivity);
-
-// // ============================================
-// // APPOINTMENTS
-// // ============================================
-// router.get('/appointments', adminController.getAllAppointments);
-// router.get('/appointments/:id', adminController.getAppointmentById);
-// router.patch('/appointments/:id/status', adminController.updateAppointmentStatus);
-
-// // ============================================
-// // SYSTEM HEALTH
-// // ============================================
-// router.get('/system/health', adminController.getSystemHealth);
-
-// // ============================================
-// // SETTINGS
-// // ============================================
-// router.get('/settings', adminController.getSettings);
-// router.put('/settings', adminController.updateSettings);
-
-// export default router;
-
-
-
-
-// routes/adminRoutes.js
-import express from 'express';
-import { authenticate, authorize } from '../middleware/auth.js';
-import {
-  validateCreateDoctor,
-  validateUpdateDoctor
-} from "../middleware/validation.js";
-import * as adminController from '../controllers/adminController.js';
+import express from "express";
+import { authenticate, authorize } from "../middleware/auth.js";
+import * as adminController from "../controllers/adminController.js";
 
 const router = express.Router();
 
-// ============================================
-// PUBLIC ROUTES (No authentication required)
-// ============================================
-router.get('/stats', adminController.getDashboardStats);
-
-// ============================================
-// PROTECTED ROUTES (Admin only)
-// ============================================
+// Enforce authentication and administrative access controls on all admin routes
 router.use(authenticate);
-router.use(authorize('admin'));
+router.use(authorize("admin"));
 
-// DOCTOR MANAGEMENT
-router.get('/doctors', adminController.getAllDoctors);
-router.get('/doctors/:id', adminController.getDoctorById);
-router.post('/doctors', validateCreateDoctor, adminController.createDoctor);
-router.put('/doctors/:id', validateUpdateDoctor, adminController.updateDoctor);
-router.delete('/doctors/:id', adminController.deleteDoctor);
+// Administrative password reset override route
+router.put("/users/:id/reset-password", adminController.resetUserPassword);
 
-// PATIENT MANAGEMENT
-router.get('/patients', adminController.getAllPatients);
-router.get('/patients/:id', adminController.getPatientById);
+// Doctor management endpoints
+router.get("/doctors", adminController.getAllDoctors);
+router.get("/doctors/:id", adminController.getDoctorById);
+router.post("/doctors", adminController.createDoctor);
+router.put("/doctors/:id", adminController.updateDoctor);
+router.delete("/doctors/:id", adminController.deleteDoctor);
 
-// DASHBOARD
-router.get('/dashboard/stats', adminController.getDashboardStats); // Keep for backward compatibility
-router.get('/dashboard/recent-activity', adminController.getRecentActivity);
+// Patient profile and account management endpoints
+router.get("/patients", adminController.getAllPatients);
+router.get("/patients/:id", adminController.getPatientById);
+router.post("/patients", adminController.createPatient);
+router.put("/patients/:id", adminController.updatePatient);
+router.delete("/patients/:id", adminController.deletePatient);
 
-// APPOINTMENTS
-router.get('/appointments', adminController.getAllAppointments);
-router.get('/appointments/:id', adminController.getAppointmentById);
-router.patch('/appointments/:id/status', adminController.updateAppointmentStatus);
+// Dashboard metric and system health monitoring endpoints
+router.get("/dashboard/stats", adminController.getDashboardStats);
+router.get("/stats", adminController.getDashboardStats);
+router.get("/dashboard/recent-activity", adminController.getRecentActivity);
+router.get("/recent-activity", adminController.getRecentActivity);
+router.get("/system/health", adminController.getSystemHealth);
+router.get("/system-health", adminController.getSystemHealth);
 
-// SYSTEM HEALTH
-router.get('/system/health', adminController.getSystemHealth);
+// Appointment oversight endpoints
+router.get("/appointments", adminController.getAllAppointments);
+router.get("/appointments/:id", adminController.getAppointmentById);
+router.patch("/appointments/:id/status", adminController.updateAppointmentStatus);
 
-// SETTINGS
-router.get('/settings', adminController.getSettings);
-router.put('/settings', adminController.updateSettings);
+// Billing and medical invoice management endpoints
+router.get("/invoices", adminController.getAllInvoices);
+router.post("/invoices", adminController.createInvoice);
+router.patch("/invoices/:id/status", adminController.updateInvoiceStatus);
+
+// Global system configuration settings endpoints
+router.get("/settings", adminController.getSettings);
+router.put("/settings", adminController.updateSettings);
+router.put("/settings/password", adminController.changePassword);
+
+// Patient helpdesk support ticket endpoints
+router.get("/support-messages", adminController.getSupportMessages);
+router.get("/support-messages/:id", adminController.getSupportMessageById);
+router.patch("/support-messages/:id/status", adminController.updateSupportMessageStatus);
+router.delete("/support-messages/:id", adminController.deleteSupportMessage);
+
+// Admin notification dispatch endpoints
+router.get("/notifications", adminController.getAdminNotifications);
+router.patch("/notifications/mark-all-read", adminController.markAllNotificationsAsRead);
+router.patch("/notifications/:id/read", adminController.markNotificationAsRead);
 
 export default router;

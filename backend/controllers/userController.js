@@ -1,15 +1,14 @@
-// controllers/userController.js
 import User from '../models/User.js';
 import Patient from '../models/Patient.js';
 import Doctor from '../models/Doctor.js';
 import Admin from '../models/Admin.js';
 import { logUserActivity } from '../utils/authHelpers.js';
 
-// Get all users (Admin only)
+// Retrieve paginated list of all system users with role and status filters
 export const getAllUsers = async (req, res) => {
   try {
     const { role, isActive, search, page = 1, limit = 10 } = req.query;
-    
+
     const filter = {};
     if (role) filter.role = role;
     if (isActive !== undefined) filter.isActive = isActive === 'true';
@@ -22,7 +21,7 @@ export const getAllUsers = async (req, res) => {
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [users, total] = await Promise.all([
       User.find(filter)
         .select('-password')
@@ -66,12 +65,14 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// Get user by ID
+// Fetch user profile details by ID ensuring access authorization
 export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    if (req.userId !== id && req.user.role !== 'admin') {
+    const currentUserId = req.user?._id || req.user?.id || req.userId;
+    const userRole = req.user?.role;
+
+    if (currentUserId !== id && userRole !== 'admin') {
       return res.status(403).json({ 
         success: false,
         error: 'Access denied' 
@@ -111,12 +112,14 @@ export const getUserById = async (req, res) => {
   }
 };
 
-// Update user profile
+// Update user core information and nested role-specific profile details
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    if (req.userId !== id && req.user.role !== 'admin') {
+    const currentUserId = req.user?._id || req.user?.id || req.userId;
+    const userRole = req.user?.role;
+
+    if (currentUserId !== id && userRole !== 'admin') {
       return res.status(403).json({ 
         success: false,
         error: 'Access denied' 
@@ -124,7 +127,7 @@ export const updateUser = async (req, res) => {
     }
 
     const { fullName, phoneNumber, patientDetails, doctorDetails } = req.body;
-    
+
     const updateData = {};
     if (fullName) updateData.fullName = fullName;
     if (phoneNumber) updateData.phoneNumber = phoneNumber;
@@ -156,7 +159,7 @@ export const updateUser = async (req, res) => {
       );
     }
 
-    await logUserActivity(req.userId, 'UPDATE_PROFILE', { targetUser: id });
+    await logUserActivity(currentUserId, 'UPDATE_PROFILE', { targetUser: id });
 
     res.json({
       success: true,
@@ -172,12 +175,13 @@ export const updateUser = async (req, res) => {
   }
 };
 
-// Change password
+// Update account password for authenticated user
 export const changePassword = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    if (req.userId !== id) {
+    const currentUserId = req.user?._id || req.user?.id || req.userId;
+
+    if (currentUserId !== id) {
       return res.status(403).json({ 
         success: false,
         error: 'Access denied' 
@@ -212,7 +216,7 @@ export const changePassword = async (req, res) => {
     user.password = newPassword;
     await user.save();
 
-    await logUserActivity(req.userId, 'CHANGE_PASSWORD');
+    await logUserActivity(currentUserId, 'CHANGE_PASSWORD');
 
     res.json({
       success: true,
@@ -227,12 +231,14 @@ export const changePassword = async (req, res) => {
   }
 };
 
-// Reset password (Admin only)
+// Reset target user password by system admin
 export const resetPassword = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    if (req.user.role !== 'admin') {
+    const currentUserId = req.user?._id || req.user?.id || req.userId;
+    const userRole = req.user?.role;
+
+    if (userRole !== 'admin') {
       return res.status(403).json({ 
         success: false,
         error: 'Access denied' 
@@ -240,7 +246,7 @@ export const resetPassword = async (req, res) => {
     }
 
     const { newPassword } = req.body;
-    
+
     if (!newPassword || newPassword.length < 6) {
       return res.status(400).json({ 
         success: false,
@@ -259,7 +265,7 @@ export const resetPassword = async (req, res) => {
     user.password = newPassword;
     await user.save();
 
-    await logUserActivity(req.userId, 'RESET_PASSWORD', { targetUser: id });
+    await logUserActivity(currentUserId, 'RESET_PASSWORD', { targetUser: id });
 
     res.json({
       success: true,
@@ -274,19 +280,21 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// Toggle user status
+// Toggle active/inactive status flag for specified user
 export const toggleUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    if (req.user.role !== 'admin') {
+    const currentUserId = req.user?._id || req.user?.id || req.userId;
+    const userRole = req.user?.role;
+
+    if (userRole !== 'admin') {
       return res.status(403).json({ 
         success: false,
         error: 'Access denied' 
       });
     }
 
-    if (req.userId === id) {
+    if (currentUserId === id) {
       return res.status(400).json({ 
         success: false,
         error: 'Cannot change your own status' 
@@ -304,7 +312,7 @@ export const toggleUserStatus = async (req, res) => {
     user.isActive = !user.isActive;
     await user.save();
 
-    await logUserActivity(req.userId, 'TOGGLE_USER_STATUS', { 
+    await logUserActivity(currentUserId, 'TOGGLE_USER_STATUS', { 
       targetUser: id, 
       newStatus: user.isActive 
     });
@@ -323,19 +331,21 @@ export const toggleUserStatus = async (req, res) => {
   }
 };
 
-// Delete user
+// Remove user record and corresponding role document
 export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    if (req.user.role !== 'admin') {
+    const currentUserId = req.user?._id || req.user?.id || req.userId;
+    const userRole = req.user?.role;
+
+    if (userRole !== 'admin') {
       return res.status(403).json({ 
         success: false,
         error: 'Access denied' 
       });
     }
 
-    if (req.userId === id) {
+    if (currentUserId === id) {
       return res.status(400).json({ 
         success: false,
         error: 'Cannot delete your own account' 
@@ -359,7 +369,7 @@ export const deleteUser = async (req, res) => {
     }
 
     await User.findByIdAndDelete(id);
-    await logUserActivity(req.userId, 'DELETE_USER', { targetUser: id, role: user.role });
+    await logUserActivity(currentUserId, 'DELETE_USER', { targetUser: id, role: user.role });
 
     res.json({
       success: true,
@@ -374,10 +384,12 @@ export const deleteUser = async (req, res) => {
   }
 };
 
-// Get user statistics
+// Compute system user counts broken down by role and registration status
 export const getUserStats = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
+    const userRole = req.user?.role;
+
+    if (userRole !== 'admin') {
       return res.status(403).json({ 
         success: false,
         error: 'Access denied' 

@@ -1,6 +1,5 @@
-// components/patient/Navbar.jsx
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -8,16 +7,20 @@ import {
   Stethoscope,
   CalendarPlus,
   CalendarCheck,
-  Bell,
-  User,
-  Settings,
   LogOut,
   Menu,
   X,
-  HeartPulse,  // Changed from Heart to HeartPulse
+  HeartPulse,
   ChevronDown,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const NAV_ITEMS = [
+  { path: '/patient/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/patient/doctors', label: 'Find Doctors', icon: Stethoscope },
+  { path: '/patient/book-appointment', label: 'Book Appointment', icon: CalendarPlus },
+  { path: '/patient/appointments', label: 'My Appointments', icon: CalendarCheck },
+];
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -27,30 +30,26 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Handle scroll effect
+  // Monitor scroll height to apply active elevation styling
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on resize
+  // Dismiss mobile side drawer when browser width expands to desktop breakpoint
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setIsMobileMenuOpen(false);
-      }
+      if (window.innerWidth >= 1024) setIsMobileMenuOpen(false);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close dropdown on outside click
+  // Dismiss profile dropdown on outside clicks
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isDropdownOpen && !event.target.closest('.dropdown-container')) {
+    const handleClickOutside = (e) => {
+      if (isDropdownOpen && !e.target.closest('.dropdown-container')) {
         setIsDropdownOpen(false);
       }
     };
@@ -58,84 +57,67 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isDropdownOpen]);
 
-  // Navigation items
-  const navItems = [
-    { path: '/patient/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/patient/doctors', label: 'Find Doctors', icon: Stethoscope },
-    { path: '/patient/book-appointment', label: 'Book Appointment', icon: CalendarPlus },
-    { path: '/patient/appointments', label: 'My Appointments', icon: CalendarCheck },
-  ];
-
-  // Dropdown menu items
-  const dropdownItems = [
-    { label: 'My Profile', icon: User, path: '/patient/profile' },
-    { label: 'Settings', icon: Settings, path: '/patient/settings' },
-    { label: 'Logout', icon: LogOut, path: '/logout' },
-  ];
-
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
     navigate('/login');
   };
 
+  const userInitial = user?.fullName?.charAt(0)?.toUpperCase() || 'P';
+  const userName = user?.fullName || 'Patient';
+  const userEmail = user?.email || 'patient@email.com';
+
   return (
     <>
+      {/* Sticky Primary Header Navbar */}
       <nav
-        className={`sticky top-0 z-50 w-full bg-white border-b border-gray-200/80 transition-shadow duration-300 ${
-          isScrolled ? 'shadow-md shadow-gray-200/50' : 'shadow-sm'
+        className={`sticky top-0 z-50 w-full bg-white border-b border-slate-200/80 transition-shadow duration-300 font-sans ${
+          isScrolled ? 'shadow-md shadow-slate-200/50' : 'shadow-2xs'
         }`}
       >
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-[72px] lg:h-[80px]">
-            {/* Left Section - Logo */}
+        <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
+          <div className="flex items-center justify-between h-16 sm:h-20">
+            
+            {/* Standardized MediCare Brand Logo */}
             <div className="flex items-center gap-3 flex-shrink-0">
-              {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                aria-label="Toggle menu"
+                className="lg:hidden p-2 rounded-xl hover:bg-slate-100 transition-colors"
+                aria-label="Open navigation menu"
               >
-                <Menu className="h-5 w-5 text-gray-700" />
+                <Menu className="h-5 w-5 text-slate-700" />
               </button>
 
-              <NavLink
-                to="/patient/dashboard"
-                className="flex items-center gap-3 group"
-              >
+              <Link to="/" className="flex items-center gap-3 group">
                 <div className="relative">
-                  {/* Glow */}
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 blur-md opacity-30 group-hover:opacity-50 transition"></div>
-
-                  {/* Logo */}
-                  <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-600 flex items-center justify-center shadow-xl">
-                    <HeartPulse className="h-6 w-6 text-white" />
+                  <div className="absolute inset-0 rounded-2xl bg-emerald-600 blur-xs opacity-30 group-hover:opacity-60 transition" />
+                  <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-emerald-700 flex items-center justify-center shadow-sm">
+                    <HeartPulse className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   </div>
                 </div>
 
                 <div className="hidden sm:block">
-                  <h1 className="text-xl font-extrabold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                  <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight leading-none">
                     MediCare
                   </h1>
-
-                  <p className="text-[11px] tracking-widest uppercase text-gray-500">
+                  <p className="text-[10px] sm:text-[11px] uppercase tracking-widest text-slate-500 font-bold mt-0.5">
                     Hospital Management System
                   </p>
                 </div>
-              </NavLink>
+              </Link>
             </div>
 
-            {/* Center Section - Desktop Navigation */}
+            {/* Desktop Link Item Menu */}
             <div className="hidden lg:flex items-center gap-1">
-              {navItems.map((item) => (
+              {NAV_ITEMS.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out ${
+                    `flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 ${
                       isActive
-                        ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/20 hover:shadow-teal-600/30 hover:bg-teal-700'
-                        : 'text-gray-700 hover:text-teal-600 hover:bg-gray-100/80'
+                        ? 'bg-emerald-700 text-white shadow-xs'
+                        : 'text-slate-700 hover:text-emerald-700 hover:bg-slate-100/80'
                     }`
                   }
                 >
@@ -145,224 +127,163 @@ const Navbar = () => {
               ))}
             </div>
 
-            {/* Right Section */}
-            <div className="flex items-center gap-2">
-              {/* Notification Bell */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsDropdownOpen(false)}
-                  className="relative p-2.5 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-5 w-5 text-gray-700" />
-                  <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full ring-2 ring-white"></span>
-                </button>
-              </div>
+            {/* Patient Account Dropdown Container */}
+            <div className="relative dropdown-container">
+              <button
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+                className="flex items-center gap-2.5 p-1.5 pr-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Profile menu"
+              >
+                <div className="relative">
+                  <div className="h-9 w-9 rounded-full bg-emerald-700 flex items-center justify-center text-white font-bold text-sm shadow-2xs">
+                    {userInitial}
+                  </div>
+                  <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-500 rounded-full border-2 border-white" />
+                </div>
 
-              {/* Patient Profile */}
-              <div className="relative dropdown-container">
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-2.5 p-1.5 pr-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                  aria-label="Profile menu"
-                >
-                  <div className="relative">
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-semibold text-sm shadow-md shadow-teal-600/20">
-                      {user?.fullName?.charAt(0)?.toUpperCase() || 'P'}
+                <div className="hidden lg:block text-left">
+                  <p className="text-sm font-bold text-slate-900 leading-tight">
+                    {userName}
+                  </p>
+                </div>
+
+                <ChevronDown
+                  className={`hidden lg:block h-4 w-4 text-slate-400 transition-transform duration-200 ${
+                    isDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {isDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 p-2"
+                  >
+                    <div className="p-3 border-b border-slate-100 bg-slate-50/50 rounded-xl mb-1">
+                      <p className="font-bold text-sm text-slate-900 truncate">{userName}</p>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">{userEmail}</p>
+                      <span className="inline-flex mt-2 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 text-[11px] rounded-full font-bold border border-emerald-100">
+                        Patient Account
+                      </span>
                     </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 rounded-full border-2 border-white"></span>
-                  </div>
-                  <div className="hidden lg:block text-left">
-                    <p className="text-sm font-medium text-gray-900 leading-tight">
-                      {user?.fullName || 'Patient'}
-                    </p>
-                  </div>
-                  <ChevronDown
-                    className={`hidden lg:block h-4 w-4 text-gray-400 transition-transform duration-200 ${
-                      isDropdownOpen ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
 
-                {/* Dropdown Menu */}
-                <AnimatePresence>
-                  {isDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                      transition={{ duration: 0.15, ease: 'easeOut' }}
-                      className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl shadow-gray-900/10 border border-gray-200/80 overflow-hidden z-50"
+                    <button
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        handleLogout();
+                      }}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
                     >
-                      <div className="p-4 border-b border-gray-200/80">
-                        <p className="font-semibold text-gray-900">
-                          {user?.fullName || 'Patient'}
-                        </p>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                          {user?.email || 'patient@email.com'}
-                        </p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="inline-flex px-2.5 py-0.5 bg-teal-50 text-teal-700 text-xs rounded-full font-medium border border-teal-100">
-                            Patient
-                          </span>
-                        </div>
-                      </div>
-                      <div className="py-1.5">
-                        {dropdownItems.map((item) => (
-                          <button
-                            key={item.label}
-                            onClick={() => {
-                              if (item.label === 'Logout') {
-                                handleLogout();
-                              } else {
-                                navigate(item.path);
-                              }
-                              setIsDropdownOpen(false);
-                            }}
-                            className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors duration-150 ${
-                              item.label === 'Logout'
-                                ? 'text-red-600 hover:bg-red-50'
-                                : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                          >
-                            <item.icon
-                              className={`h-4 w-4 ${
-                                item.label === 'Logout'
-                                  ? 'text-red-500'
-                                  : 'text-gray-500'
-                              }`}
-                            />
-                            <span>{item.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                      <LogOut className="h-4 w-4 text-rose-500" />
+                      <span>Log Out</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Slide-in Drawer */}
+      {/* Responsive Mobile Drawer Navigation */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            {/* Overlay */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 lg:hidden"
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 lg:hidden"
               onClick={() => setIsMobileMenuOpen(false)}
             />
 
-            {/* Drawer */}
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 h-full w-80 bg-white shadow-2xl z-50 lg:hidden"
+              className="fixed left-0 top-0 h-full w-80 bg-white shadow-2xl z-50 lg:hidden flex flex-col font-sans"
             >
-              {/* Drawer Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200/80">
-                <div className="flex items-center gap-3">
+              {/* Drawer Logo Banner */}
+              <div className="flex items-center justify-between p-4 border-b border-slate-100">
+                <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 group">
                   <div className="relative">
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 blur-md opacity-30"></div>
-
-                    <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-600 flex items-center justify-center shadow-xl">
-                      <HeartPulse className="h-6 w-6 text-white" />
+                    <div className="absolute inset-0 rounded-2xl bg-emerald-600 blur-xs opacity-30 group-hover:opacity-60 transition" />
+                    <div className="relative w-10 h-10 rounded-2xl bg-emerald-700 flex items-center justify-center shadow-sm">
+                      <HeartPulse className="w-5 h-5 text-white" />
                     </div>
                   </div>
 
                   <div>
-                    <h2 className="text-xl font-extrabold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                    <h1 className="text-lg font-extrabold text-slate-900 tracking-tight leading-none">
                       MediCare
-                    </h2>
-
-                    <p className="text-[11px] uppercase tracking-widest text-gray-500">
+                    </h1>
+                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-0.5">
                       Hospital Management System
                     </p>
                   </div>
-                </div>
+                </Link>
+
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                  className="p-2 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
                   aria-label="Close menu"
                 >
-                  <X className="h-5 w-5 text-gray-600" />
+                  <X className="h-5 w-5 text-slate-600" />
                 </button>
               </div>
 
-              {/* Drawer Profile */}
-              <div className="p-4 border-b border-gray-200/80 bg-gradient-to-br from-teal-50/50 to-transparent">
+              {/* Drawer User Banner */}
+              <div className="p-4 border-b border-slate-100 bg-emerald-50/40">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white font-semibold text-lg shadow-md shadow-teal-600/20">
-                    {user?.fullName?.charAt(0)?.toUpperCase() || 'P'}
+                  <div className="h-11 w-11 rounded-full bg-emerald-700 flex items-center justify-center text-white font-bold text-base shadow-2xs">
+                    {userInitial}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
-                      {user?.fullName || 'Patient'}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {user?.email || 'patient@email.com'}
-                    </p>
+                    <p className="text-sm font-bold text-slate-900 truncate">{userName}</p>
+                    <p className="text-xs text-slate-500 truncate">{userEmail}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Drawer Navigation */}
-              <div className="p-3">
-                <div className="space-y-1">
-                  {navItems.map((item) => (
-                    <NavLink
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                          isActive
-                            ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/20'
-                            : 'text-gray-700 hover:bg-gray-100/80 hover:text-teal-600'
-                        }`
-                      }
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  ))}
-                </div>
+              {/* Drawer Links */}
+              <div className="p-3 flex-1 overflow-y-auto space-y-1">
+                {NAV_ITEMS.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all ${
+                        isActive
+                          ? 'bg-emerald-700 text-white shadow-2xs'
+                          : 'text-slate-700 hover:bg-slate-100/80 hover:text-emerald-700'
+                      }`
+                    }
+                  >
+                    <item.icon className="h-5 w-5" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
 
-                {/* Drawer Divider */}
-                <div className="my-4 border-t border-gray-200/80"></div>
-
-                {/* Drawer Actions */}
-                <div className="space-y-1">
-                  {dropdownItems.map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={() => {
-                        if (item.label === 'Logout') {
-                          handleLogout();
-                        } else {
-                          navigate(item.path);
-                        }
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-200 ${
-                        item.label === 'Logout'
-                          ? 'text-red-600 hover:bg-red-50'
-                          : 'text-gray-700 hover:bg-gray-100/80 hover:text-teal-600'
-                      }`}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </button>
-                  ))}
-                </div>
+              {/* Drawer Logout Action */}
+              <div className="p-3 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                >
+                  <LogOut className="h-5 w-5 text-rose-500" />
+                  <span>Log Out</span>
+                </button>
               </div>
             </motion.div>
           </>

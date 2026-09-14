@@ -1,14 +1,11 @@
 // middleware/validation.js
 import { body, param, query, validationResult } from 'express-validator';
 
+// Process validation middleware results and format error response
 export const handleValidationErrors = (req, res, next) => {
-  console.log("REQ BODY:", req.body);
-
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
-    console.log(errors.array());
-
     return res.status(400).json({
       success: false,
       errors: errors.array().map(err => ({
@@ -21,7 +18,7 @@ export const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// Patient Registration Validation
+// Validate patient registration input parameters
 export const validatePatientRegistration = [
   body('fullName')
     .notEmpty().withMessage('Full name is required')
@@ -58,7 +55,7 @@ export const validatePatientRegistration = [
   handleValidationErrors
 ];
 
-// Login Validation
+// Validate user login credentials
 export const validateLogin = [
   body('email')
     .isEmail().withMessage('Valid email is required')
@@ -68,7 +65,7 @@ export const validateLogin = [
   handleValidationErrors
 ];
 
-// Create Doctor Validation (Admin)
+// Validate new doctor account creation data
 export const validateCreateDoctor = [
   body('fullName')
     .notEmpty().withMessage('Full name is required'),
@@ -91,7 +88,7 @@ export const validateCreateDoctor = [
   handleValidationErrors
 ];
 
-// Update User Validation
+// Validate user profile update parameters
 export const validateUpdateUser = [
   param('id')
     .isMongoId().withMessage('Invalid user ID'),
@@ -104,7 +101,7 @@ export const validateUpdateUser = [
   handleValidationErrors
 ];
 
-// Password Change Validation
+// Validate password change parameters
 export const validatePasswordChange = [
   param('id')
     .isMongoId().withMessage('Invalid user ID'),
@@ -123,36 +120,34 @@ export const validatePasswordChange = [
   handleValidationErrors
 ];
 
-
+// Validate doctor profile update details
 export const validateUpdateDoctor = [
-  body("fullName").notEmpty().withMessage("Full name is required"),
-
-  body("email")
-    .isEmail()
-    .withMessage("Valid email is required"),
-
-  body("phoneNumber")
-  .optional()
-  .matches(/^[0-9]{10}$/)
-  .withMessage("Phone number must be 10 digits"),
-
-  body("department")
-    .notEmpty()
-    .withMessage("Department is required"),
-
-  body("specialization")
-    .notEmpty()
-    .withMessage("Specialization is required"),
-
-  body("qualification")
-    .notEmpty()
-    .withMessage("Qualification is required"),
-
-  body("experience")
-    .isInt({ min: 0, max: 50 }),
-
-  body("consultationFee")
-    .isNumeric(),
-
+  param('id')
+    .optional()
+    .isMongoId().withMessage('Invalid doctor ID'),
+  body('fullName')
+    .optional()
+    .notEmpty().withMessage('Full name is required'),
+  body('email')
+    .optional()
+    .isEmail().withMessage('Valid email is required'),
+  body('phoneNumber')
+    .optional()
+    .matches(/^[0-9]{10}$/).withMessage('Phone number must be 10 digits'),
+  body('department')
+    .optional()
+    .notEmpty().withMessage('Department is required'),
+  body('specialization')
+    .optional()
+    .notEmpty().withMessage('Specialization is required'),
+  body('qualification')
+    .optional()
+    .notEmpty().withMessage('Qualification is required'),
+  body('experience')
+    .optional()
+    .isInt({ min: 0, max: 50 }).withMessage('Experience must be between 0 and 50 years'),
+  body('consultationFee')
+    .optional()
+    .isNumeric().withMessage('Consultation fee must be numeric'),
   handleValidationErrors
 ];

@@ -1,32 +1,32 @@
-// routes/doctorRoutes.js
 import express from 'express';
 import { authenticate, authorize } from '../middleware/auth.js';
 import * as doctorController from '../controllers/doctorController.js';
 
 const router = express.Router();
 
-// All routes require authentication and doctor role
+// Restrict all doctor route endpoints to authenticated doctor accounts
 router.use(authenticate);
 router.use(authorize('doctor'));
 
-// Doctor profile
+// Doctor profile management endpoints
 router.get('/profile', doctorController.getProfile);
 router.put('/profile', doctorController.updateProfile);
 
-// Availability management
+// Working hours and time slot availability endpoints
 router.get('/availability', doctorController.getAvailability);
 router.put('/availability', doctorController.updateAvailability);
 
-// Appointments
+// Appointment management endpoints
 router.get('/appointments', doctorController.getMyAppointments);
 router.get('/appointments/:id', doctorController.getAppointmentDetails);
+router.patch('/appointments/:id/status', doctorController.updateAppointmentStatus);
 router.put('/appointments/:id/status', doctorController.updateAppointmentStatus);
 
-// Patient management (doctor view)
+// Patient record access endpoints
 router.get('/patients', doctorController.getMyPatients);
 router.get('/patients/:id', doctorController.getPatientDetails);
 
-// Doctor ratings
+// Patient rating and review overview endpoint
 router.get('/ratings', doctorController.getMyRatings);
 
 export default router;

@@ -1,10 +1,9 @@
-// utils/authHelpers.js
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import Admin from '../models/Admin.js';
 
-// Generate JWT Token
+// Generate JSON Web Token for authenticated user sessions
 export const generateToken = (userId) => {
   return jwt.sign(
     { userId },
@@ -13,31 +12,29 @@ export const generateToken = (userId) => {
   );
 };
 
-// Hash password
+// Hash raw password string with standard salt rounds
 export const hashPassword = async (password) => {
-  return await bcrypt.hash(password, 12);
+  return await bcrypt.hash(password, 10);
 };
 
-// Compare password
+// Compare raw password against hashed password string
 export const comparePassword = async (password, hashedPassword) => {
   return await bcrypt.compare(password, hashedPassword);
 };
 
+// Synchronize default system administrator user account during startup
 export const setupInitialAdmin = async () => {
   try {
-    console.log("🔍 Checking for existing admin...");
+    const targetEmail = process.env.ADMIN_EMAIL || "swejaltembhare044@gmail.com";
+    const rawPassword = process.env.ADMIN_PASSWORD || "@Liveheri";
 
-    const adminExists = await User.findOne({ role: "admin" });
+    let adminUser = await User.findOne({ email: targetEmail });
 
-    console.log("Existing Admin:", adminExists);
-
-    if (!adminExists) {
-      console.log("✅ No admin found. Creating new admin...");
-
-      const adminUser = new User({
+    if (!adminUser) {
+      adminUser = new User({
         fullName: "System Administrator",
-        email: process.env.ADMIN_EMAIL,
-        password: process.env.ADMIN_PASSWORD,
+        email: targetEmail,
+        password: rawPassword,
         phoneNumber: "1234567890",
         role: "admin",
         isActive: true,
@@ -62,18 +59,30 @@ export const setupInitialAdmin = async () => {
       });
 
       await admin.save();
-
-      console.log("✅ Default admin created successfully");
-      console.log("📧 Email:", adminUser.email);
+      console.log("Default admin account created successfully");
     } else {
-      console.log("⚠️ Admin already exists:", adminExists.email);
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(rawPassword, salt);
+
+      await User.updateOne(
+        { _id: adminUser._id },
+        { 
+          $set: { 
+            password: hashedPassword,
+            role: "admin",
+            isActive: true 
+          } 
+        }
+      );
+
+      console.log("Admin credentials synced successfully for:", targetEmail);
     }
   } catch (error) {
-    console.error("❌ Admin setup error:", error);
+    console.error("Admin setup error:", error);
   }
 };
 
-// Check user permissions
+// Verify administrative user role permissions for system operations
 export const hasPermission = async (userId, requiredPermission) => {
   try {
     const user = await User.findById(userId);
@@ -89,7 +98,7 @@ export const hasPermission = async (userId, requiredPermission) => {
   }
 };
 
-// Log user activity
+// Record user activity event in user profile activity history
 export const logUserActivity = async (userId, action, details = {}) => {
   try {
     await User.findByIdAndUpdate(userId, {

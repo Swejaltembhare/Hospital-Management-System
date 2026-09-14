@@ -1,7 +1,7 @@
 // src/components/admin/RecentActivity.jsx
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   UserPlus, 
   Stethoscope, 
@@ -14,42 +14,43 @@ import {
   AlertCircle,
   MessageSquare,
   RefreshCw,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from 'lucide-react';
+import { adminAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 const RecentActivity = () => {
+  const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
 
+  // Query recent system activity events when filter selection updates
   useEffect(() => {
     fetchActivities();
   }, [filter]);
 
+  // Retrieve recent administrative logs and events from backend API
   const fetchActivities = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const params = new URLSearchParams({
+      const params = {
         limit: 10,
         type: filter !== 'all' ? filter : ''
-      });
+      };
 
-      const response = await fetch(`/api/admin/activities/recent?${params}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch activities');
-      }
-
-      const data = await response.json();
-      setActivities(data.activities || []);
+      const response = await adminAPI.getRecentActivity(params);
+      const data = response.data || response.activities || response || [];
+      setActivities(Array.isArray(data) ? data : data.activities || []);
     } catch (err) {
       console.error('Error fetching activities:', err);
       setError('Failed to load activities');
       setActivities([]);
+      toast.error('Failed to load recent activity feed');
     } finally {
       setLoading(false);
     }
@@ -66,8 +67,9 @@ const RecentActivity = () => {
       completed: CheckCircle,
       alert: AlertCircle,
       message: MessageSquare,
+      export: FileText,
     };
-    return icons[type] || Clock;
+    return icons[type?.toLowerCase()] || Clock;
   };
 
   const getActivityColor = (type) => {
@@ -81,23 +83,27 @@ const RecentActivity = () => {
       completed: 'bg-emerald-100 text-emerald-600',
       alert: 'bg-rose-100 text-rose-600',
       message: 'bg-cyan-100 text-cyan-600',
+      export: 'bg-teal-100 text-teal-600',
     };
-    return colors[type] || 'bg-gray-100 text-gray-600';
+    return colors[type?.toLowerCase()] || 'bg-gray-100 text-gray-600';
   };
 
   const getActivityText = (activity) => {
+    if (activity.description) return activity.description;
+    if (activity.details) return activity.details;
+
     const texts = {
-      patient: `New patient ${activity.name || activity.patientName || 'Unknown'} registered`,
-      doctor: `Dr. ${activity.name || activity.doctorName || 'Unknown'} ${activity.action || 'added'}`,
-      appointment: `Appointment ${activity.action || 'booked'} with Dr. ${activity.doctorName || 'Unknown'}`,
-      cancel: `Appointment cancelled by ${activity.name || activity.patientName || 'Unknown'}`,
-      prescription: `Prescription ${activity.action || 'added'} for ${activity.name || activity.patientName || 'Unknown'}`,
-      department: `New department ${activity.name || 'Unknown'} created`,
-      completed: `Appointment completed - ${activity.patientName || 'Patient'}`,
+      patient: `New patient ${activity.name || activity.patientName || 'User'} registered`,
+      doctor: `Dr. ${activity.name || activity.doctorName || 'Doctor'} ${activity.action || 'updated'}`,
+      appointment: `Appointment ${activity.action || 'booked'} with Dr. ${activity.doctorName || 'Doctor'}`,
+      cancel: `Appointment cancelled by ${activity.name || activity.patientName || 'Patient'}`,
+      prescription: `Prescription ${activity.action || 'added'} for ${activity.name || activity.patientName || 'Patient'}`,
+      department: `Department ${activity.name || ''} modified`,
+      completed: `Appointment completed for ${activity.patientName || 'Patient'}`,
       alert: `${activity.title || 'Alert'}: ${activity.message || ''}`,
-      message: `${activity.from || 'User'} sent a message`,
+      message: `${activity.from || 'User'} sent a helpdesk message`,
     };
-    return texts[activity.type] || `${activity.type || 'Unknown'} activity`;
+    return texts[activity.type?.toLowerCase()] || `${activity.action || 'System event'} performed`;
   };
 
   const getStatusBadge = (status) => {
@@ -178,7 +184,7 @@ const RecentActivity = () => {
           <p className="text-red-600">{error}</p>
           <button 
             onClick={fetchActivities}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            className="mt-4 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
           >
             Try Again
           </button>
@@ -193,11 +199,12 @@ const RecentActivity = () => {
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
     >
+      {/* Activity Section Header */}
       <div className="p-4 sm:p-6 border-b border-gray-100">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Clock size={20} className="text-purple-600" />
+            <div className="p-2 bg-teal-100 rounded-lg">
+              <Clock size={20} className="text-teal-600" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-800">Recent Activity</h3>
@@ -215,8 +222,8 @@ const RecentActivity = () => {
               <RefreshCw size={16} className="text-gray-400" />
             </button>
             <Link
-              to="/admin/activities"
-              className="text-xs text-purple-600 font-medium hover:text-purple-700 flex items-center gap-1"
+              to="/admin/audit-logs"
+              className="text-xs text-teal-600 font-medium hover:text-teal-700 flex items-center gap-1"
             >
               View All
               <ChevronRight size={14} />
@@ -224,7 +231,7 @@ const RecentActivity = () => {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Activity Category Filter Chips */}
         <div className="flex flex-wrap gap-1.5 mt-3">
           {filterOptions.map((option) => (
             <button
@@ -232,7 +239,7 @@ const RecentActivity = () => {
               onClick={() => setFilter(option.value)}
               className={`px-3 py-1 rounded-lg text-xs transition-colors ${
                 filter === option.value
-                  ? 'bg-purple-600 text-white'
+                  ? 'bg-teal-600 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -242,6 +249,7 @@ const RecentActivity = () => {
         </div>
       </div>
 
+      {/* Activity Items List */}
       <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
         {activities.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
@@ -265,7 +273,7 @@ const RecentActivity = () => {
                 className="flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors cursor-pointer"
                 onClick={() => {
                   if (activity.link) {
-                    window.location.href = activity.link;
+                    navigate(activity.link);
                   }
                 }}
               >
@@ -275,21 +283,19 @@ const RecentActivity = () => {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-800">{getActivityText(activity)}</p>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-500">{formatTime(activity.createdAt || activity.time)}</span>
-                    {activity.user && (
-                      <span className="text-xs text-gray-400">by {activity.user}</span>
+                    <span className="text-xs text-gray-500">{formatTime(activity.createdAt || activity.time || activity.timestamp)}</span>
+                    {(activity.user || activity.performedBy) && (
+                      <span className="text-xs text-gray-400">by {activity.user || activity.performedBy}</span>
                     )}
                     {getStatusBadge(activity.status)}
                   </div>
                 </div>
-                {activity.relatedId && (
+                {activity.link && (
                   <button 
-                    className="text-xs text-purple-600 hover:text-purple-700 font-medium whitespace-nowrap"
+                    className="text-xs text-teal-600 hover:text-teal-700 font-medium whitespace-nowrap"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (activity.link) {
-                        window.location.href = activity.link;
-                      }
+                      navigate(activity.link);
                     }}
                   >
                     View
@@ -301,15 +307,15 @@ const RecentActivity = () => {
         )}
       </div>
 
-      {/* Footer */}
+      {/* Activity Card Footer */}
       {activities.length > 0 && (
         <div className="p-3 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
           <span className="text-xs text-gray-500">
             Showing {activities.length} activities
           </span>
           <Link
-            to="/admin/activities"
-            className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+            to="/admin/audit-logs"
+            className="text-xs text-teal-600 hover:text-teal-700 font-medium"
           >
             View all →
           </Link>

@@ -1,536 +1,62 @@
-// // controllers/patientController.js
-// import Patient from "../models/Patient.js";
-// import Doctor from "../models/Doctor.js";
-// import Appointment from "../models/Appointment.js";
-// import User from "../models/User.js";
-// import { logUserActivity } from "../utils/authHelpers.js";
-
-// // Get patient profile
-// export const getProfile = async (req, res) => {
-//   try {
-//     const patient = await Patient.findOne({ user: req.userId }).populate(
-//       "medicalHistory.doctor",
-//       "specialization department",
-//     );
-
-//     if (!patient) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Patient profile not found",
-//       });
-//     }
-
-//     res.json({
-//       success: true,
-//       patient,
-//     });
-//   } catch (error) {
-//     console.error("Get profile error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to fetch profile",
-//     });
-//   }
-// };
-
-// // Update patient profile
-// export const updateProfile = async (req, res) => {
-//   try {
-//     const updateData = req.body;
-
-//     const patient = await Patient.findOneAndUpdate(
-//       { user: req.userId },
-//       updateData,
-//       { new: true, runValidators: true },
-//     );
-
-//     if (!patient) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Patient profile not found",
-//       });
-//     }
-
-//     await logUserActivity(req.userId, "UPDATE_PATIENT_PROFILE");
-
-//     res.json({
-//       success: true,
-//       message: "Profile updated successfully",
-//       patient,
-//     });
-//   } catch (error) {
-//     console.error("Update profile error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to update profile",
-//     });
-//   }
-// };
-
-// // Book appointment
-// export const bookAppointment = async (req, res) => {
-//   try {
-//     const {
-//       doctorId,
-//       date,
-//       timeSlot,
-//       symptoms,
-//       appointmentType,
-//       reason,
-//       notes,
-//     } = req.body;
-
-//     // Check if doctor exists
-//     const doctor = await Doctor.findById(doctorId);
-//     if (!doctor) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Doctor not found",
-//       });
-//     }
-
-//     // Check if slot is available
-//     const existingAppointment = await Appointment.findOne({
-//       doctor: doctorId,
-//       date: new Date(date),
-//       timeSlot,
-//       status: { $nin: ["cancelled", "completed"] },
-//     });
-
-//     if (existingAppointment) {
-//       return res.status(400).json({
-//         success: false,
-//         error: "Time slot is already booked",
-//       });
-//     }
-
-//     const appointment = new Appointment({
-//       patient: patient._id,
-//       doctor: doctorId,
-//       department: doctor.department,
-//       consultationFee: doctor.consultationFee,
-//       date: new Date(date),
-//       timeSlot,
-//       appointmentType,
-//       reason,
-//       symptoms,
-//       notes,
-//       status: "pending",
-//     });
-
-//     await appointment.save();
-
-//     await logUserActivity(req.userId, "BOOK_APPOINTMENT", {
-//       doctorId,
-//       date,
-//       timeSlot,
-//     });
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Appointment booked successfully",
-//       appointment,
-//     });
-//   } catch (error) {
-//     console.error("Book appointment error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to book appointment",
-//     });
-//   }
-// };
-
-// // Get patient appointments
-// export const getMyAppointments = async (req, res) => {
-//   try {
-//     const { status, page = 1, limit = 10 } = req.query;
-
-//     const filter = { patient: req.userId };
-//     if (status) filter.status = status;
-
-//     const skip = (parseInt(page) - 1) * parseInt(limit);
-
-//     const [appointments, total] = await Promise.all([
-//       Appointment.find(filter)
-//         .populate({
-//           path: "doctor",
-//           populate: {
-//             path: "user",
-//             select: "fullName email phoneNumber",
-//           },
-//         })
-//         .skip(skip)
-//         .limit(parseInt(limit))
-//         .sort({ date: -1 }),
-//       Appointment.countDocuments(filter),
-//     ]);
-//     console.log(JSON.stringify(appointments, null, 2));
-//     res.json({
-//       success: true,
-//       appointments,
-//       pagination: {
-//         page: parseInt(page),
-//         limit: parseInt(limit),
-//         total,
-//         pages: Math.ceil(total / parseInt(limit)),
-//       },
-//     });
-//   } catch (error) {
-//     console.error("Get appointments error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to fetch appointments",
-//     });
-//   }
-// };
-
-// // Get appointment by ID
-// export const getAppointmentById = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const appointment = await Appointment.findById(id)
-//       .populate("doctor", "specialization department consultationFee")
-//       .populate("doctor.user", "fullName")
-//       .populate("patient", "dateOfBirth gender bloodGroup");
-
-//     if (!appointment) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Appointment not found",
-//       });
-//     }
-
-//     // Check if the appointment belongs to the patient
-//     if (appointment.patient.toString() !== req.userId) {
-//       return res.status(403).json({
-//         success: false,
-//         error: "Access denied",
-//       });
-//     }
-
-//     res.json({
-//       success: true,
-//       appointment,
-//     });
-//   } catch (error) {
-//     console.error("Get appointment error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to fetch appointment",
-//     });
-//   }
-// };
-
-// // Cancel appointment
-// export const cancelAppointment = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const appointment = await Appointment.findById(id);
-//     if (!appointment) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Appointment not found",
-//       });
-//     }
-
-//     if (appointment.patient.toString() !== req.userId) {
-//       return res.status(403).json({
-//         success: false,
-//         error: "Access denied",
-//       });
-//     }
-
-//     if (
-//       appointment.status === "completed" ||
-//       appointment.status === "cancelled"
-//     ) {
-//       return res.status(400).json({
-//         success: false,
-//         error: "Cannot cancel this appointment",
-//       });
-//     }
-
-//     appointment.status = "cancelled";
-//     await appointment.save();
-
-//     await logUserActivity(req.userId, "CANCEL_APPOINTMENT", {
-//       appointmentId: id,
-//     });
-
-//     res.json({
-//       success: true,
-//       message: "Appointment cancelled successfully",
-//       appointment,
-//     });
-//   } catch (error) {
-//     console.error("Cancel appointment error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to cancel appointment",
-//     });
-//   }
-// };
-
-// // Get medical history
-// export const getMedicalHistory = async (req, res) => {
-//   try {
-//     const patient = await Patient.findOne({ user: req.userId })
-//       .populate("medicalHistory.doctor", "specialization department")
-//       .populate("medicalHistory.doctor.user", "fullName");
-
-//     if (!patient) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Patient not found",
-//       });
-//     }
-
-//     res.json({
-//       success: true,
-//       medicalHistory: patient.medicalHistory || [],
-//     });
-//   } catch (error) {
-//     console.error("Get medical history error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to fetch medical history",
-//     });
-//   }
-// };
-
-// // Add medical history
-// export const addMedicalHistory = async (req, res) => {
-//   try {
-//     const { condition, diagnosedDate, treatment, doctorId, status, notes } =
-//       req.body;
-
-//     const patient = await Patient.findOne({ user: req.userId });
-
-//     if (!patient) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Patient profile not found",
-//       });
-//     }
-
-//     patient.medicalHistory.push({
-//       condition,
-//       diagnosedDate: new Date(diagnosedDate),
-//       treatment,
-//       doctor: doctorId,
-//       status: status || "Active",
-//       notes,
-//     });
-
-//     await patient.save();
-
-//     await logUserActivity(req.userId, "ADD_MEDICAL_HISTORY", { condition });
-
-//     res.status(201).json({
-//       success: true,
-//       message: "Medical history added successfully",
-//       medicalHistory: patient.medicalHistory,
-//     });
-//   } catch (error) {
-//     console.error("Add medical history error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to add medical history",
-//     });
-//   }
-// };
-
-// // Get available doctors
-// export const getAvailableDoctors = async (req, res) => {
-//   try {
-//     const { department, specialization, page = 1, limit = 10 } = req.query;
-
-//     const filter = { isAvailable: true, isVerified: true };
-//     if (department) filter.department = department;
-//     if (specialization)
-//       filter.specialization = { $regex: specialization, $options: "i" };
-
-//     const skip = (parseInt(page) - 1) * parseInt(limit);
-
-//     const [doctors, total] = await Promise.all([
-//       Doctor.find(filter)
-//         .populate("user", "fullName email phoneNumber")
-//         .skip(skip)
-//         .limit(parseInt(limit))
-//         .sort({ averageRating: -1 }),
-//       Doctor.countDocuments(filter),
-//     ]);
-
-//     res.json({
-//       success: true,
-//       doctors,
-//       pagination: {
-//         page: parseInt(page),
-//         limit: parseInt(limit),
-//         total,
-//         pages: Math.ceil(total / parseInt(limit)),
-//       },
-//     });
-//   } catch (error) {
-//     console.error("Get available doctors error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to fetch doctors",
-//     });
-//   }
-// };
-
-// // Get doctor details
-// export const getDoctorDetails = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     const doctor = await Doctor.findById(id)
-//       .populate("user", "fullName email phoneNumber")
-//       .populate("ratings.patient", "fullName");
-
-//     if (!doctor) {
-//       return res.status(404).json({
-//         success: false,
-//         error: "Doctor not found",
-//       });
-//     }
-
-//     res.json({
-//       success: true,
-//       doctor,
-//     });
-//   } catch (error) {
-//     console.error("Get doctor details error:", error);
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to fetch doctor details",
-//     });
-//   }
-// };
-
-// // Get medications
-// export const getMedications = async (req, res) => {
-//   try {
-//     res.json({
-//       success: true,
-//       medications: [],
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to fetch medications",
-//     });
-//   }
-// };
-
-// // Get health score
-// export const getHealthScore = async (req, res) => {
-//   try {
-//     res.json({
-//       success: true,
-//       score: 85,
-//       status: "Good",
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to fetch health score",
-//     });
-//   }
-// };
-
-// // Get health metrics
-// export const getHealthMetrics = async (req, res) => {
-//   try {
-//     res.json({
-//       success: true,
-//       metrics: [],
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to fetch health metrics",
-//     });
-//   }
-// };
-
-// // Get emergency contacts
-// export const getEmergencyContacts = async (req, res) => {
-//   try {
-//     res.json({
-//       success: true,
-//       contacts: [],
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       error: "Failed to fetch emergency contacts",
-//     });
-//   }
-// };
-
-
-
-
-
-
-// controllers/patientController.js
 import Patient from "../models/Patient.js";
 import Doctor from "../models/Doctor.js";
 import Appointment from "../models/Appointment.js";
 import User from "../models/User.js";
+import SupportMessage from "../models/SupportMessage.js";
 import { logUserActivity } from "../utils/authHelpers.js";
+import { logAudit } from '../middleware/auditLog.js';
 
-// Get patient profile
+// Retrieve profile record for currently authenticated patient
 export const getProfile = async (req, res) => {
   try {
-    const patient = await Patient.findOne({ user: req.userId }).populate(
-      "medicalHistory.doctor",
-      "specialization department",
-    );
+    const userId = req.user?._id || req.user?.id || req.userId;
+    const patient = await Patient.findOne({ user: userId })
+      .populate("user", "fullName email phoneNumber profilePhoto")
+      .populate("medicalHistory.doctor", "specialization department");
 
     if (!patient) {
-      return res.status(404).json({
-        success: false,
-        error: "Patient profile not found",
-      });
+      return res.status(404).json({ success: false, error: "Patient profile not found" });
     }
 
-    res.json({
-      success: true,
-      patient,
-    });
+    res.json({ success: true, patient });
   } catch (error) {
     console.error("Get profile error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch profile",
-    });
+    res.status(500).json({ success: false, error: "Failed to fetch profile" });
   }
 };
 
-// Update patient profile
+// Update patient profile details and synchronize changes with linked user record
 export const updateProfile = async (req, res) => {
   try {
-    const updateData = req.body;
+    const userId = req.user?._id || req.user?.id || req.userId;
+    const { fullName, phoneNumber, ...updateData } = req.body;
 
-    const patient = await Patient.findOneAndUpdate(
-      { user: req.userId },
-      updateData,
-      { new: true, runValidators: true },
-    );
-
-    if (!patient) {
-      return res.status(404).json({
-        success: false,
-        error: "Patient profile not found",
-      });
+    if (fullName || phoneNumber) {
+      const userUpdate = {};
+      if (fullName) userUpdate.fullName = fullName;
+      if (phoneNumber) userUpdate.phoneNumber = phoneNumber;
+      await User.findByIdAndUpdate(userId, userUpdate, { runValidators: true });
     }
 
-    await logUserActivity(req.userId, "UPDATE_PATIENT_PROFILE");
+    const patient = await Patient.findOneAndUpdate(
+      { user: userId },
+      updateData,
+      { new: true, runValidators: true }
+    ).populate("user", "fullName email phoneNumber profilePhoto");
+
+    if (!patient) {
+      return res.status(404).json({ success: false, error: "Patient profile not found" });
+    }
+
+    await logUserActivity(userId, "UPDATE_PATIENT_PROFILE");
+    await logAudit(
+      req,
+      'UPDATE',
+      'PATIENT',
+      patient._id,
+      patient.user?.fullName || 'Patient',
+      `Patient profile updated`
+    );
 
     res.json({
       success: true,
@@ -539,16 +65,14 @@ export const updateProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Update profile error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to update profile",
-    });
+    res.status(500).json({ success: false, error: "Failed to update profile" });
   }
 };
 
-// Book appointment - ✅ FIXED
+// Reserve an appointment slot with specified doctor
 export const bookAppointment = async (req, res) => {
   try {
+    const userId = req.user?._id || req.user?.id || req.userId;
     const {
       doctorId,
       date,
@@ -559,41 +83,32 @@ export const bookAppointment = async (req, res) => {
       notes,
     } = req.body;
 
-    // ✅ Step 1: Get patient using user ID
-    const patient = await Patient.findOne({ user: req.userId });
-
+    const patient = await Patient.findOne({ user: userId }).populate('user', 'fullName');
     if (!patient) {
-      return res.status(404).json({
-        success: false,
-        error: "Patient profile not found",
-      });
+      return res.status(404).json({ success: false, error: "Patient profile not found" });
     }
 
-    // Check if doctor exists
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
-      return res.status(404).json({
-        success: false,
-        error: "Doctor not found",
-      });
+      return res.status(404).json({ success: false, error: "Doctor not found" });
     }
 
-    // Check if slot is available
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
     const existingAppointment = await Appointment.findOne({
       doctor: doctorId,
-      date: new Date(date),
+      date: { $gte: startDate, $lte: endDate },
       timeSlot,
-      status: { $nin: ["cancelled", "completed"] },
+      status: { $nin: ["cancelled", "rejected"] },
     });
 
     if (existingAppointment) {
-      return res.status(400).json({
-        success: false,
-        error: "Time slot is already booked",
-      });
+      return res.status(400).json({ success: false, error: "Time slot is already booked" });
     }
 
-    // ✅ Step 1: Use patient._id instead of req.userId
     const appointment = new Appointment({
       patient: patient._id,
       doctor: doctorId,
@@ -601,7 +116,7 @@ export const bookAppointment = async (req, res) => {
       consultationFee: doctor.consultationFee,
       date: new Date(date),
       timeSlot,
-      appointmentType,
+      appointmentType: appointmentType || "In-Person",
       reason,
       symptoms,
       notes,
@@ -610,11 +125,15 @@ export const bookAppointment = async (req, res) => {
 
     await appointment.save();
 
-    await logUserActivity(req.userId, "BOOK_APPOINTMENT", {
-      doctorId,
-      date,
-      timeSlot,
-    });
+    await logUserActivity(userId, "BOOK_APPOINTMENT", { doctorId, date, timeSlot });
+    await logAudit(
+      req,
+      'BOOK',
+      'APPOINTMENT',
+      appointment._id,
+      `${patient.user?.fullName || 'Patient'} booked appointment`,
+      `Appointment booked for ${new Date(date).toLocaleDateString()} at ${timeSlot}`
+    );
 
     res.status(201).json({
       success: true,
@@ -623,29 +142,21 @@ export const bookAppointment = async (req, res) => {
     });
   } catch (error) {
     console.error("Book appointment error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to book appointment",
-    });
+    res.status(500).json({ success: false, error: "Failed to book appointment" });
   }
 };
 
-// Get patient appointments - ✅ FIXED
+// Fetch paginated list of appointments for logged-in patient
 export const getMyAppointments = async (req, res) => {
   try {
+    const userId = req.user?._id || req.user?.id || req.userId;
     const { status, page = 1, limit = 10 } = req.query;
 
-    // ✅ Step 2: Get patient using user ID
-    const patient = await Patient.findOne({ user: req.userId });
-
+    const patient = await Patient.findOne({ user: userId });
     if (!patient) {
-      return res.status(404).json({
-        success: false,
-        error: "Patient profile not found",
-      });
+      return res.status(404).json({ success: false, error: "Patient profile not found" });
     }
 
-    // ✅ Step 2: Use patient._id instead of req.userId
     const filter = { patient: patient._id };
     if (status) filter.status = status;
 
@@ -655,9 +166,10 @@ export const getMyAppointments = async (req, res) => {
       Appointment.find(filter)
         .populate({
           path: "doctor",
+          select: "specialization department consultationFee averageRating experience user",
           populate: {
             path: "user",
-            select: "fullName email phoneNumber",
+            select: "fullName email phoneNumber profilePhoto",
           },
         })
         .skip(skip)
@@ -665,7 +177,7 @@ export const getMyAppointments = async (req, res) => {
         .sort({ date: -1 }),
       Appointment.countDocuments(filter),
     ]);
-    console.log(JSON.stringify(appointments, null, 2));
+
     res.json({
       success: true,
       appointments,
@@ -678,16 +190,14 @@ export const getMyAppointments = async (req, res) => {
     });
   } catch (error) {
     console.error("Get appointments error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch appointments",
-    });
+    res.status(500).json({ success: false, error: "Failed to fetch appointments" });
   }
 };
 
-// Get appointment by ID - ✅ FIXED
+// Fetch specific appointment details ensuring patient ownership
 export const getAppointmentById = async (req, res) => {
   try {
+    const userId = req.user?._id || req.user?.id || req.userId;
     const { id } = req.params;
 
     const appointment = await Appointment.findById(id)
@@ -696,90 +206,46 @@ export const getAppointmentById = async (req, res) => {
       .populate("patient", "dateOfBirth gender bloodGroup");
 
     if (!appointment) {
-      return res.status(404).json({
-        success: false,
-        error: "Appointment not found",
-      });
+      return res.status(404).json({ success: false, error: "Appointment not found" });
     }
 
-    // ✅ Step 3: Get patient using user ID
-    const patient = await Patient.findOne({ user: req.userId });
-
-    if (!patient) {
-      return res.status(404).json({
-        success: false,
-        error: "Patient profile not found",
-      });
+    const patient = await Patient.findOne({ user: userId });
+    if (!patient || appointment.patient.toString() !== patient._id.toString()) {
+      return res.status(403).json({ success: false, error: "Access denied" });
     }
 
-    // ✅ Step 3: Compare with patient._id instead of req.userId
-    if (appointment.patient.toString() !== patient._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        error: "Access denied",
-      });
-    }
-
-    res.json({
-      success: true,
-      appointment,
-    });
+    res.json({ success: true, appointment });
   } catch (error) {
     console.error("Get appointment error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch appointment",
-    });
+    res.status(500).json({ success: false, error: "Failed to fetch appointment" });
   }
 };
 
-// Cancel appointment - ✅ FIXED
+// Cancel an upcoming or pending appointment order
 export const cancelAppointment = async (req, res) => {
   try {
+    const userId = req.user?._id || req.user?.id || req.userId;
     const { id } = req.params;
 
     const appointment = await Appointment.findById(id);
     if (!appointment) {
-      return res.status(404).json({
-        success: false,
-        error: "Appointment not found",
-      });
+      return res.status(404).json({ success: false, error: "Appointment not found" });
     }
 
-    // ✅ Step 4: Get patient using user ID
-    const patient = await Patient.findOne({ user: req.userId });
-
-    if (!patient) {
-      return res.status(404).json({
-        success: false,
-        error: "Patient profile not found",
-      });
+    const patient = await Patient.findOne({ user: userId });
+    if (!patient || appointment.patient.toString() !== patient._id.toString()) {
+      return res.status(403).json({ success: false, error: "Access denied" });
     }
 
-    // ✅ Step 4: Compare with patient._id instead of req.userId
-    if (appointment.patient.toString() !== patient._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        error: "Access denied",
-      });
-    }
-
-    if (
-      appointment.status === "completed" ||
-      appointment.status === "cancelled"
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: "Cannot cancel this appointment",
-      });
+    if (appointment.status === "completed" || appointment.status === "cancelled") {
+      return res.status(400).json({ success: false, error: "Cannot cancel this appointment" });
     }
 
     appointment.status = "cancelled";
     await appointment.save();
 
-    await logUserActivity(req.userId, "CANCEL_APPOINTMENT", {
-      appointmentId: id,
-    });
+    await logUserActivity(userId, "CANCEL_APPOINTMENT", { appointmentId: id });
+    await logAudit(req, 'CANCEL', 'APPOINTMENT', appointment._id, `Appointment cancelled`, `Appointment cancelled`);
 
     res.json({
       success: true,
@@ -788,25 +254,91 @@ export const cancelAppointment = async (req, res) => {
     });
   } catch (error) {
     console.error("Cancel appointment error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to cancel appointment",
-    });
+    res.status(500).json({ success: false, error: "Failed to cancel appointment" });
   }
 };
 
-// Get medical history
+// Submit feedback rating for completed appointment consultation
+export const rateAppointment = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id || req.userId;
+    const { id } = req.params;
+    const { rating } = req.body;
+
+    const ratingNum = Number(rating);
+    if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
+      return res.status(400).json({ success: false, error: "Rating must be between 1 and 5" });
+    }
+
+    const patient = await Patient.findOne({ user: userId });
+    if (!patient) {
+      return res.status(404).json({ success: false, error: "Patient profile not found" });
+    }
+
+    const appointment = await Appointment.findById(id);
+    if (!appointment) {
+      return res.status(404).json({ success: false, error: "Appointment not found" });
+    }
+
+    if (appointment.patient.toString() !== patient._id.toString()) {
+      return res.status(403).json({ success: false, error: "Access denied" });
+    }
+
+    if (appointment.status !== "completed") {
+      return res.status(400).json({ success: false, error: "Only completed appointments can be rated" });
+    }
+
+    appointment.rating = ratingNum;
+    await appointment.save();
+
+    const doctor = await Doctor.findById(appointment.doctor);
+    if (doctor) {
+      if (!Array.isArray(doctor.ratings)) {
+        doctor.ratings = [];
+      }
+
+      const existingIndex = doctor.ratings.findIndex(
+        (r) => r.patient && r.patient.toString() === patient._id.toString()
+      );
+
+      if (existingIndex > -1) {
+        doctor.ratings[existingIndex].rating = ratingNum;
+        doctor.ratings[existingIndex].date = new Date();
+      } else {
+        doctor.ratings.push({
+          patient: patient._id,
+          rating: ratingNum,
+          date: new Date(),
+        });
+      }
+
+      await doctor.save();
+    }
+
+    await logUserActivity(userId, "RATE_DOCTOR", { appointmentId: id, rating: ratingNum });
+
+    res.json({
+      success: true,
+      message: "Rating submitted successfully",
+      rating: appointment.rating,
+      averageRating: doctor?.averageRating || 0,
+    });
+  } catch (error) {
+    console.error("Rate appointment error:", error);
+    res.status(500).json({ success: false, error: "Failed to submit rating" });
+  }
+};
+
+// Fetch medical history entries for active patient profile
 export const getMedicalHistory = async (req, res) => {
   try {
-    const patient = await Patient.findOne({ user: req.userId })
+    const userId = req.user?._id || req.user?.id || req.userId;
+    const patient = await Patient.findOne({ user: userId })
       .populate("medicalHistory.doctor", "specialization department")
       .populate("medicalHistory.doctor.user", "fullName");
 
     if (!patient) {
-      return res.status(404).json({
-        success: false,
-        error: "Patient not found",
-      });
+      return res.status(404).json({ success: false, error: "Patient not found" });
     }
 
     res.json({
@@ -815,26 +347,19 @@ export const getMedicalHistory = async (req, res) => {
     });
   } catch (error) {
     console.error("Get medical history error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch medical history",
-    });
+    res.status(500).json({ success: false, error: "Failed to fetch medical history" });
   }
 };
 
-// Add medical history
+// Append new medical condition entry to patient history record
 export const addMedicalHistory = async (req, res) => {
   try {
-    const { condition, diagnosedDate, treatment, doctorId, status, notes } =
-      req.body;
+    const userId = req.user?._id || req.user?.id || req.userId;
+    const { condition, diagnosedDate, treatment, doctorId, status, notes } = req.body;
 
-    const patient = await Patient.findOne({ user: req.userId });
-
+    const patient = await Patient.findOne({ user: userId });
     if (!patient) {
-      return res.status(404).json({
-        success: false,
-        error: "Patient profile not found",
-      });
+      return res.status(404).json({ success: false, error: "Patient profile not found" });
     }
 
     patient.medicalHistory.push({
@@ -848,7 +373,8 @@ export const addMedicalHistory = async (req, res) => {
 
     await patient.save();
 
-    await logUserActivity(req.userId, "ADD_MEDICAL_HISTORY", { condition });
+    await logUserActivity(userId, "ADD_MEDICAL_HISTORY", { condition });
+    await logAudit(req, 'CREATE', 'MEDICAL_RECORD', patient._id, `Medical history added`, `Condition: ${condition}`);
 
     res.status(201).json({
       success: true,
@@ -857,28 +383,24 @@ export const addMedicalHistory = async (req, res) => {
     });
   } catch (error) {
     console.error("Add medical history error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to add medical history",
-    });
+    res.status(500).json({ success: false, error: "Failed to add medical history" });
   }
 };
 
-// Get available doctors
+// Query list of verified available doctors with department filter
 export const getAvailableDoctors = async (req, res) => {
   try {
     const { department, specialization, page = 1, limit = 10 } = req.query;
 
     const filter = { isAvailable: true, isVerified: true };
     if (department) filter.department = department;
-    if (specialization)
-      filter.specialization = { $regex: specialization, $options: "i" };
+    if (specialization) filter.specialization = { $regex: specialization, $options: "i" };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const [doctors, total] = await Promise.all([
       Doctor.find(filter)
-        .populate("user", "fullName email phoneNumber")
+        .populate("user", "fullName email phoneNumber profilePhoto")
         .skip(skip)
         .limit(parseInt(limit))
         .sort({ averageRating: -1 }),
@@ -897,99 +419,161 @@ export const getAvailableDoctors = async (req, res) => {
     });
   } catch (error) {
     console.error("Get available doctors error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch doctors",
-    });
+    res.status(500).json({ success: false, error: "Failed to fetch doctors" });
   }
 };
 
-// Get doctor details
+// Fetch public profile details and ratings for selected doctor
 export const getDoctorDetails = async (req, res) => {
   try {
     const { id } = req.params;
 
     const doctor = await Doctor.findById(id)
-      .populate("user", "fullName email phoneNumber")
+      .populate("user", "fullName email phoneNumber profilePhoto")
       .populate("ratings.patient", "fullName");
 
     if (!doctor) {
-      return res.status(404).json({
-        success: false,
-        error: "Doctor not found",
-      });
+      return res.status(404).json({ success: false, error: "Doctor not found" });
     }
 
-    res.json({
-      success: true,
-      doctor,
-    });
+    res.json({ success: true, doctor });
   } catch (error) {
     console.error("Get doctor details error:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch doctor details",
-    });
+    res.status(500).json({ success: false, error: "Failed to fetch doctor details" });
   }
 };
 
-// Get medications
+// Retrieve active medication list extracted from appointment prescriptions
 export const getMedications = async (req, res) => {
   try {
-    res.json({
-      success: true,
-      medications: [],
+    const userId = req.user?._id || req.user?.id || req.userId;
+    const patient = await Patient.findOne({ user: userId });
+    if (!patient) {
+      return res.status(404).json({ success: false, error: "Patient not found" });
+    }
+
+    const appointments = await Appointment.find({
+      patient: patient._id,
+      status: { $in: ["confirmed", "completed"] },
+      prescription: { $exists: true, $ne: null }
+    })
+      .sort({ date: -1, createdAt: -1 })
+      .limit(20);
+
+    const medications = [];
+
+    appointments.forEach((appointment) => {
+      const prescription = appointment.prescription;
+      if (!prescription) return;
+
+      if (Array.isArray(prescription.medications)) {
+        prescription.medications.forEach((med, index) => {
+          const times = Array.isArray(med.times) ? med.times : getMedicationTimes(med.frequency);
+
+          medications.push({
+            _id: `${appointment._id}-${index}`,
+            name: med.name,
+            dosage: med.dosage,
+            frequency: med.frequency,
+            duration: med.duration,
+            times,
+            taken: [],
+            takenCount: 0,
+            totalDoses: times.length,
+            progress: 0,
+            appointmentId: appointment._id,
+            prescribedDate: appointment.date
+          });
+        });
+      }
     });
+
+    res.json({ success: true, medications });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch medications",
-    });
+    console.error("Get medications error:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch medications" });
   }
 };
 
-// Get health score
-export const getHealthScore = async (req, res) => {
-  try {
-    res.json({
-      success: true,
-      score: 85,
-      status: "Good",
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch health score",
-    });
+// Parse medication frequency string into scheduled daily time slots
+const getMedicationTimes = (frequency = "") => {
+  const value = frequency.toLowerCase();
+
+  if (value.includes("three") || value.includes("3") || value.includes("thrice")) {
+    return ["Morning", "Afternoon", "Night"];
   }
+
+  if (value.includes("twice") || value.includes("2") || value.includes("two")) {
+    return ["Morning", "Night"];
+  }
+
+  return ["Morning"];
 };
 
-// Get health metrics
+// Return placeholder array for patient health metrics tracking
 export const getHealthMetrics = async (req, res) => {
   try {
-    res.json({
-      success: true,
-      metrics: [],
-    });
+    res.json({ success: true, metrics: [] });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch health metrics",
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch health metrics' });
   }
 };
 
-// Get emergency contacts
+// Return emergency contact numbers associated with patient
 export const getEmergencyContacts = async (req, res) => {
   try {
-    res.json({
+    res.json({ success: true, contacts: [] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch emergency contacts' });
+  }
+};
+
+// Create support ticket and forward to system administration desk
+export const sendSupportMessage = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id || req.userId;
+    const { subject, message, email } = req.body;
+
+    if (!subject?.trim() || !message?.trim()) {
+      return res.status(400).json({ success: false, error: "Subject and message are required" });
+    }
+
+    const user = await User.findById(userId);
+    const userEmail = email || user?.email || "patient@medicare.com";
+
+    const supportMessage = await SupportMessage.create({
+      user: userId,
+      email: userEmail,
+      subject: subject.trim(),
+      message: message.trim(),
+      status: "open",
+    });
+
+    await logUserActivity(userId, "SUPPORT_MESSAGE", {
+      supportMessageId: supportMessage._id,
+      subject: subject.trim(),
+    });
+
+    await logAudit(
+      req,
+      'CREATE',
+      'SUPPORT_MESSAGE',
+      supportMessage._id,
+      user?.fullName || 'Patient',
+      `Support message created: ${subject.trim()}`
+    );
+
+    return res.status(201).json({
       success: true,
-      contacts: [],
+      message: "Support ticket created successfully",
+      supportMessage,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Send support message error:", error);
+    return res.status(500).json({
       success: false,
-      error: "Failed to fetch emergency contacts",
+      error: "Failed to submit support message",
+      details: error.message,
     });
   }
 };

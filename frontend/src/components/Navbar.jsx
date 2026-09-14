@@ -1,7 +1,15 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { FaUserMd, FaHospitalUser, FaUserShield, FaSignOutAlt, FaBars, FaTimes, FaHeartbeat } from 'react-icons/fa';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import {
+  HeartPulse,
+  Stethoscope,
+  UserCheck,
+  ShieldCheck,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -10,161 +18,226 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    setIsMenuOpen(false);
+    navigate("/");
   };
 
   const getDashboardLink = () => {
-    if (!user) return '/';
-    switch(user.role) {
-      case 'patient': return '/patient/dashboard';
-      case 'doctor': return '/doctor/dashboard';
-      case 'admin': return '/admin/dashboard';
-      default: return '/';
+    if (!user) return "/";
+    switch (user.role) {
+      case "patient":
+        return "/patient/dashboard";
+      case "doctor":
+        return "/doctor/dashboard";
+      case "admin":
+        return "/admin/dashboard";
+      default:
+        return "/";
     }
   };
 
   const getRoleIcon = () => {
     if (!user) return null;
-    switch(user.role) {
-      case 'patient': return <FaHospitalUser className="text-blue-500" />;
-      case 'doctor': return <FaUserMd className="text-green-500" />;
-      case 'admin': return <FaUserShield className="text-purple-500" />;
-      default: return null;
+    switch (user.role) {
+      case "patient":
+        return <UserCheck className="w-4 h-4 text-emerald-600" />;
+      case "doctor":
+        return <Stethoscope className="w-4 h-4 text-emerald-600" />;
+      case "admin":
+        return <ShieldCheck className="w-4 h-4 text-teal-600" />;
+      default:
+        return null;
     }
   };
 
   return (
-    <nav className="bg-white shadow-lg">
-      <div className="max-w-full max-w-7 mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+    <nav className="w-full bg-white border-b border-slate-200 sticky top-0 z-50 shadow-2xs font-sans">
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10">
+        <div className="flex items-center justify-between h-16">
+          
+          {/* Brand Logo Banner */}
           <div className="flex items-center">
-            <Link
-              to="/"
-              className="flex items-center gap-3 group"
-            >
-              {/* Logo */}
+            <Link to="/" className="flex items-center gap-3 group">
               <div className="relative">
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 blur-md opacity-30 group-hover:opacity-60 transition"></div>
-
-                <div className="relative w-11 h-11 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-600 flex items-center justify-center shadow-xl">
-                  <FaHeartbeat className="text-white text-2xl" />
+                <div className="absolute inset-0 rounded-2xl bg-emerald-600 blur-xs opacity-30 group-hover:opacity-60 transition" />
+                <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-emerald-700 flex items-center justify-center shadow-sm">
+                  <HeartPulse className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
               </div>
 
-              {/* Text */}
               <div>
-                <h1 className="text-xl font-extrabold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+                <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight leading-none">
                   MediCare
                 </h1>
-
-                <p className="text-[11px] uppercase tracking-widest text-gray-500">
+                <p className="text-[10px] sm:text-[11px] uppercase tracking-widest text-slate-500 font-bold mt-0.5">
                   Hospital Management System
                 </p>
               </div>
             </Link>
           </div>
 
-          {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Desktop Navigation Links */}
+          <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
             {isAuthenticated ? (
               <>
-                <Link 
-                  to={getDashboardLink()} 
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+                <Link
+                  to={getDashboardLink()}
+                  className="text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors"
                 >
                   Dashboard
                 </Link>
-                
-                {user?.role === 'patient' && (
+
+                {user?.role === "patient" && (
                   <>
-                    <Link to="/patient/doctors" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                    <Link
+                      to="/patient/doctors"
+                      className="text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors"
+                    >
                       Doctors
                     </Link>
-                    <Link to="/patient/appointments" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                    <Link
+                      to="/patient/appointments"
+                      className="text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors"
+                    >
                       Appointments
                     </Link>
                   </>
                 )}
-                
-                {user?.role === 'doctor' && (
-                  <Link to="/doctor/appointments" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+
+                {user?.role === "doctor" && (
+                  <Link
+                    to="/doctor/appointments"
+                    className="text-slate-700 hover:text-emerald-700 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors"
+                  >
                     Appointments
                   </Link>
                 )}
 
-                <div className="flex items-center space-x-2 ml-4">
-                  {getRoleIcon()}
-                  <span className="text-sm font-medium text-gray-700">
-                    {user?.fullName}
-                  </span>
+                <div className="flex items-center space-x-3 border-l border-slate-200 pl-4 ml-2">
+                  <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/80">
+                    {getRoleIcon()}
+                    <span className="text-xs font-bold text-slate-800">
+                      {user?.fullName}
+                    </span>
+                  </div>
+
                   <button
                     onClick={handleLogout}
-                    className="flex items-center text-red-600 hover:text-red-800 px-3 py-2 rounded-md text-sm font-medium"
+                    className="flex items-center gap-1.5 text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                   >
-                    <FaSignOutAlt className="mr-1" />
-                    Logout
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
                   </button>
                 </div>
               </>
             ) : (
               <>
-                <Link to="/login" className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                <Link
+                  to="/login"
+                  className="text-slate-700 hover:text-emerald-700 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors"
+                >
                   Login
                 </Link>
-                <Link to="/register" className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium">
+                <Link
+                  to="/register"
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-2xs transition-all cursor-pointer"
+                >
                   Register
                 </Link>
               </>
             )}
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile Drawer Navigation Trigger */}
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-700 hover:text-blue-600 focus:outline-none"
+              className="text-slate-700 hover:text-emerald-700 p-2 rounded-xl focus:outline-none cursor-pointer"
+              aria-label="Toggle menu"
             >
-              {isMenuOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Drawer Menu Content */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200">
-          <div className="px-2 pt-2 pb-3 space-y-1">
+        <div className="md:hidden bg-white border-b border-slate-200 shadow-md">
+          <div className="px-4 pt-2 pb-4 space-y-1 font-medium">
             {isAuthenticated ? (
               <>
-                <Link to={getDashboardLink()} className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                <Link
+                  to={getDashboardLink()}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block px-3 py-2.5 rounded-xl text-sm font-bold text-slate-800 hover:text-emerald-700 hover:bg-slate-50"
+                >
                   Dashboard
                 </Link>
-                {user?.role === 'patient' && (
+
+                {user?.role === "patient" && (
                   <>
-                    <Link to="/patient/doctors" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                    <Link
+                      to="/patient/doctors"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block px-3 py-2.5 rounded-xl text-sm font-bold text-slate-800 hover:text-emerald-700 hover:bg-slate-50"
+                    >
                       Doctors
                     </Link>
-                    <Link to="/patient/appointments" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+                    <Link
+                      to="/patient/appointments"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block px-3 py-2.5 rounded-xl text-sm font-bold text-slate-800 hover:text-emerald-700 hover:bg-slate-50"
+                    >
                       Appointments
                     </Link>
                   </>
                 )}
-                <button
-                  onClick={handleLogout}
-                  className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:text-red-800 hover:bg-gray-50"
-                >
-                  Logout
-                </button>
+
+                {user?.role === "doctor" && (
+                  <Link
+                    to="/doctor/appointments"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block px-3 py-2.5 rounded-xl text-sm font-bold text-slate-800 hover:text-emerald-700 hover:bg-slate-50"
+                  >
+                    Appointments
+                  </Link>
+                )}
+
+                <div className="pt-2 border-t border-slate-100 space-y-2">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl">
+                    {getRoleIcon()}
+                    <span className="text-xs font-bold text-slate-800">
+                      {user?.fullName} ({user?.role})
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </button>
+                </div>
               </>
             ) : (
-              <>
-                <Link to="/login" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50">
+              <div className="space-y-2 pt-1">
+                <Link
+                  to="/login"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block w-full text-center px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 text-slate-700 hover:bg-slate-50"
+                >
                   Login
                 </Link>
-                <Link to="/register" className="block px-3 py-2 rounded-md text-base font-medium bg-blue-600 text-white hover:bg-blue-700">
+                <Link
+                  to="/register"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block w-full text-center px-4 py-2.5 rounded-xl text-sm font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs"
+                >
                   Register
                 </Link>
-              </>
+              </div>
             )}
           </div>
         </div>

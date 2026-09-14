@@ -2,14 +2,17 @@ import mongoose from "mongoose";
 
 const connectDB = async () => {
   try {
-    console.log("MONGO_URI:", process.env.MONGO_URI);
+    // Validate environment variable before connection attempt
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI environment variable is missing.");
+    }
 
-    const conn = await mongoose.connect(process.env.MONGO_URI);
+    // Connect to MongoDB with 5s timeout safety
+    const conn = await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
 
-    console.log("MongoDB Connected Successfully");
-    console.log("Database:", conn.connection.name);
-    console.log("Host:", conn.connection.host);
-    console.log("Ready State:", mongoose.connection.readyState);
+    console.log(`MongoDB Connected: ${conn.connection.host}/${conn.connection.name}`);
 
   } catch (error) {
     console.error("MongoDB Connection Error:", error.message);

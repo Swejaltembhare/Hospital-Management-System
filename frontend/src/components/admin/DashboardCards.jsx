@@ -1,4 +1,3 @@
-// src/components/admin/DashboardCards.jsx
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -14,6 +13,8 @@ import {
   TrendingDown,
   RefreshCw
 } from 'lucide-react';
+import { adminAPI } from '../../services/api';
+import toast from 'react-hot-toast';
 
 const DashboardCards = () => {
   const [stats, setStats] = useState({
@@ -29,26 +30,24 @@ const DashboardCards = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Fetch metrics data on initial component mount
   useEffect(() => {
     fetchDashboardStats();
   }, []);
 
+  // Query high-level dashboard metrics from the administrative API
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('/api/admin/dashboard-stats');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard statistics');
-      }
-
-      const data = await response.json();
+      const response = await adminAPI.getDashboardStats();
+      const data = response.data || response.stats || response;
       setStats(data);
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
       setError('Failed to load dashboard statistics');
+      toast.error('Failed to load dashboard statistics');
     } finally {
       setLoading(false);
     }
@@ -59,7 +58,7 @@ const DashboardCards = () => {
       title: 'Total Doctors',
       value: stats?.totalDoctors || 0,
       icon: Stethoscope,
-      color: 'blue',
+      color: 'teal',
       trend: 12,
       trendDirection: 'up'
     },
@@ -122,7 +121,7 @@ const DashboardCards = () => {
   ];
 
   const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600',
+    teal: 'bg-teal-50 text-teal-600',
     green: 'bg-green-50 text-green-600',
     purple: 'bg-purple-50 text-purple-600',
     indigo: 'bg-indigo-50 text-indigo-600',
@@ -169,7 +168,7 @@ const DashboardCards = () => {
         <p className="text-red-600">{error}</p>
         <button 
           onClick={fetchDashboardStats}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          className="mt-4 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
         >
           Try Again
         </button>
@@ -179,16 +178,18 @@ const DashboardCards = () => {
 
   return (
     <>
+      {/* Dashboard Metrics Header Action */}
       <div className="flex justify-end mb-4">
         <button
           onClick={fetchDashboardStats}
-          className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition flex items-center gap-2"
+          className="px-4 py-2 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-100 transition flex items-center gap-2"
         >
           <RefreshCw size={16} />
           <span className="text-sm">Refresh Stats</span>
         </button>
       </div>
 
+      {/* Overview Stat Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {cards.map((card, index) => (
           <motion.div

@@ -1,4 +1,3 @@
-// src/components/admin/AppointmentTable.jsx
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -12,6 +11,8 @@ import {
   Search,
   RefreshCw
 } from 'lucide-react';
+import { adminAPI } from '../../services/api';
+import toast from 'react-hot-toast';
 
 const AppointmentTable = () => {
   const [appointments, setAppointments] = useState([]);
@@ -24,37 +25,35 @@ const AppointmentTable = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const itemsPerPage = 5;
 
+  // Fetch appointment data whenever pagination or status filter changes
   useEffect(() => {
     fetchAppointments();
   }, [currentPage, statusFilter]);
 
+  // Query appointment records from admin API with filters
   const fetchAppointments = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const params = new URLSearchParams({
+      const params = {
         page: currentPage,
         limit: itemsPerPage,
         status: statusFilter !== 'all' ? statusFilter : '',
         search: searchTerm
-      });
+      };
 
-      const response = await fetch(`/api/appointments?${params}`);
+      const response = await adminAPI.getAllAppointments(params);
+      const data = response.data || response;
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch appointments');
-      }
-
-      const data = await response.json();
-      
-      setAppointments(data.appointments || []);
-      setTotalPages(data.pagination?.totalPages || 1);
-      setTotalItems(data.pagination?.totalItems || 0);
+      setAppointments(data.appointments || data.data || []);
+      setTotalPages(data.pagination?.totalPages || data.pages || 1);
+      setTotalItems(data.pagination?.totalItems || data.total || 0);
     } catch (err) {
       console.error('Error fetching appointments:', err);
       setError('Failed to load appointments. Please try again.');
       setAppointments([]);
+      toast.error('Failed to load appointments');
     } finally {
       setLoading(false);
     }
@@ -77,66 +76,42 @@ const AppointmentTable = () => {
       completed: 'bg-green-100 text-green-700',
       cancelled: 'bg-red-100 text-red-700',
     };
-    return badges[status] || 'bg-gray-100 text-gray-700';
+    return badges[status?.toLowerCase()] || 'bg-gray-100 text-gray-700';
   };
 
+  // Update specific appointment status
   const handleStatusUpdate = async (appointmentId, newStatus) => {
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update appointment status');
-      }
-
+      await adminAPI.updateAppointmentStatus(appointmentId, newStatus);
+      toast.success(`Appointment status updated to ${newStatus}`);
       fetchAppointments();
     } catch (err) {
       console.error('Error updating appointment:', err);
-      alert('Failed to update appointment status. Please try again.');
+      toast.error('Failed to update appointment status');
     }
   };
 
+  // Cancel selected appointment record
   const handleCancel = async (appointmentId) => {
     if (!window.confirm('Are you sure you want to cancel this appointment?')) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to cancel appointment');
-      }
-
+      await adminAPI.updateAppointmentStatus(appointmentId, 'cancelled');
+      toast.success('Appointment cancelled successfully');
       fetchAppointments();
     } catch (err) {
       console.error('Error cancelling appointment:', err);
-      alert('Failed to cancel appointment. Please try again.');
+      toast.error('Failed to cancel appointment');
     }
-  };
-
-  const handleEdit = (appointmentId) => {
-    // Navigate to edit page or open modal
-    console.log('Edit appointment:', appointmentId);
-  };
-
-  const handleView = (appointmentId) => {
-    // Navigate to view page or open modal
-    console.log('View appointment:', appointmentId);
   };
 
   if (loading && appointments.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 bg-white rounded-xl shadow-sm border border-gray-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading appointments...</p>
         </div>
       </div>
@@ -149,7 +124,7 @@ const AppointmentTable = () => {
         <p className="text-red-600">{error}</p>
         <button 
           onClick={fetchAppointments}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          className="mt-4 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
         >
           Try Again
         </button>
@@ -163,6 +138,7 @@ const AppointmentTable = () => {
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
     >
+      {/* Table Action and Filter Controls Header */}
       <div className="p-6 border-b border-gray-100">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h3 className="text-lg font-semibold text-gray-800">
@@ -172,7 +148,7 @@ const AppointmentTable = () => {
             <select
               value={statusFilter}
               onChange={(e) => handleStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -189,13 +165,13 @@ const AppointmentTable = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               />
             </div>
 
             <button
               onClick={fetchAppointments}
-              className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition flex items-center gap-2"
+              className="px-4 py-2 bg-teal-50 text-teal-600 rounded-lg hover:bg-teal-100 transition flex items-center gap-2"
             >
               <RefreshCw size={16} />
               <span className="text-sm">Refresh</span>
@@ -204,6 +180,7 @@ const AppointmentTable = () => {
         </div>
       </div>
       
+      {/* Appointments Data Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -229,15 +206,17 @@ const AppointmentTable = () => {
                 >
                   <td className="px-6 py-4">
                     <p className="text-sm font-medium text-gray-900">
-                      {appointment.patient?.fullName || 'Unknown'}
+                      {appointment.patient?.user?.fullName || appointment.patient?.fullName || 'Unknown'}
                     </p>
-                    {appointment.patient?.email && (
-                      <p className="text-xs text-gray-500">{appointment.patient.email}</p>
+                    {(appointment.patient?.user?.email || appointment.patient?.email) && (
+                      <p className="text-xs text-gray-500">
+                        {appointment.patient?.user?.email || appointment.patient?.email}
+                      </p>
                     )}
                   </td>
                   <td className="px-6 py-4">
                     <p className="text-sm text-gray-600">
-                      Dr. {appointment.doctor?.user?.fullName || 'Unknown'}
+                      Dr. {appointment.doctor?.user?.fullName || appointment.doctor?.fullName || 'Unknown'}
                     </p>
                     {appointment.doctor?.specialty && (
                       <p className="text-xs text-gray-500">{appointment.doctor.specialty}</p>
@@ -263,20 +242,6 @@ const AppointmentTable = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => handleView(appointment._id)}
-                        className="p-1 hover:bg-blue-50 rounded-lg transition-colors" 
-                        title="View"
-                      >
-                        <Eye size={16} className="text-blue-600" />
-                      </button>
-                      <button 
-                        onClick={() => handleEdit(appointment._id)}
-                        className="p-1 hover:bg-green-50 rounded-lg transition-colors" 
-                        title="Edit"
-                      >
-                        <Edit size={16} className="text-green-600" />
-                      </button>
                       {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
                         <>
                           <button 
@@ -314,6 +279,7 @@ const AppointmentTable = () => {
         </table>
       </div>
 
+      {/* Pagination Controls Footer */}
       {totalItems > 0 && (
         <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between flex-wrap gap-4">
           <p className="text-sm text-gray-500">
@@ -347,7 +313,7 @@ const AppointmentTable = () => {
                     onClick={() => setCurrentPage(pageNum)}
                     className={`px-3 py-1 rounded-lg text-sm transition-colors ${
                       currentPage === pageNum
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-teal-600 text-white'
                         : 'hover:bg-gray-100 text-gray-600'
                     }`}
                   >
@@ -355,9 +321,6 @@ const AppointmentTable = () => {
                   </button>
                 );
               })}
-              {totalPages > 5 && currentPage < totalPages - 2 && (
-                <span className="px-2 py-1 text-gray-400">...</span>
-              )}
             </div>
 
             <button

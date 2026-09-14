@@ -1,360 +1,266 @@
-// src/pages/Home.jsx
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { 
-  CalendarIcon, 
-  UserGroupIcon, 
-  ClipboardDocumentListIcon, 
-  ClockIcon,
-  CheckBadgeIcon,
-  UserPlusIcon,
-  ArrowRightIcon,
-  ShieldCheckIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  MapPinIcon,
-  ChartBarIcon,
-  BuildingOfficeIcon,
-  HeartIcon
-} from '@heroicons/react/24/outline';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import {
+  Calendar,
+  Users,
+  ClipboardList,
+  Clock,
+  BadgeCheck,
+  UserPlus,
+  ArrowRight,
+  ShieldCheck,
+  BarChart3,
+  Sparkles,
+} from "lucide-react";
+
+// Feature Card Sub-Component
+const FeatureCard = ({
+  icon: Icon,
+  title,
+  description,
+  colorClass = "text-emerald-700",
+}) => (
+  <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-2xs hover:border-emerald-300 transition-all text-left">
+    <div className="w-10 h-10 bg-emerald-50/80 rounded-xl flex items-center justify-center mb-3">
+      <Icon className={`w-5 h-5 ${colorClass}`} />
+    </div>
+    <h3 className="text-xs sm:text-sm font-bold text-slate-900 mb-1">
+      {title}
+    </h3>
+    <p className="text-xs text-slate-500 leading-relaxed font-medium">
+      {description}
+    </p>
+  </div>
+);
 
 const Home = () => {
   const { isAuthenticated, user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Retrieve hospital dashboard statistics on load
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch('/api/admin/stats');
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data);
-        } else {
-          setStats(null);
-        }
+        const response = await adminAPI.getStats();
+        const data = response.data?.data || {};
+
+        setStats(data);
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error("Error fetching stats:", error);
         setStats(null);
       } finally {
         setLoading(false);
       }
     };
+
     fetchStats();
   }, []);
 
+  // Determine user role dashboard target path
   const getDashboardPath = () => {
-    if (!isAuthenticated) return '/register';
-    if (user?.role === 'patient') return '/patient/dashboard';
-    if (user?.role === 'doctor') return '/doctor/dashboard';
-    if (user?.role === 'admin') return '/admin/dashboard';
-    return '/register';
+    if (!isAuthenticated) return "/register";
+    if (user?.role === "patient") return "/patient/dashboard";
+    if (user?.role === "doctor") return "/doctor/dashboard";
+    if (user?.role === "admin") return "/admin/dashboard";
+    return "/register";
   };
 
   const getButtonText = () => {
-    if (!isAuthenticated) return 'Get Started';
-    return 'Go to Dashboard';
+    if (!isAuthenticated) return "Book Appointment";
+    return "Go to Dashboard";
   };
 
   const getHeroTitle = () => {
-    if (!isAuthenticated) return 'Book Doctor Appointments in Seconds';
-    if (user?.role === 'patient') return 'Welcome Back to Your Health Hub';
-    if (user?.role === 'doctor') return 'Manage Your Practice Efficiently';
-    if (user?.role === 'admin') return 'Hospital Management Dashboard';
-    return 'Book Doctor Appointments in Seconds';
+    if (!isAuthenticated) return "Book Doctor Appointments Online in Seconds";
+    if (user?.role === "patient") return "Welcome Back to Your Health Portal";
+    if (user?.role === "doctor") return "Manage Your Practice & Patients";
+    if (user?.role === "admin") return "Hospital Operations Dashboard";
+    return "Book Doctor Appointments Online in Seconds";
   };
 
   const getHeroSubtitle = () => {
     if (!isAuthenticated) {
-      return 'Connect with trusted healthcare professionals, manage appointments, and access your medical records all in one place — anytime, anywhere.';
+      return "Connect with top-rated specialists, manage schedule bookings, and access medical records with total security.";
     }
-    if (user?.role === 'patient') {
-      return 'View your appointments, access prescriptions, and manage your health journey seamlessly.';
+    if (user?.role === "patient") {
+      return "View your upcoming appointments, access prescriptions, and consult top specialists.";
     }
-    if (user?.role === 'doctor') {
-      return 'Manage your schedule, view patient appointments, and provide quality care efficiently.';
+    if (user?.role === "doctor") {
+      return "Manage daily patient queues, confirm appointments, and review medical histories.";
     }
-    if (user?.role === 'admin') {
-      return 'Oversee hospital operations, manage staff, and track key performance metrics.';
+    if (user?.role === "admin") {
+      return "Monitor hospital performance metrics, doctor availability, and overall system workflows.";
     }
-    return 'Connect with trusted healthcare professionals, manage appointments, and access your medical records all in one place — anytime, anywhere.';
+    return "Connect with top-rated specialists, manage schedule bookings, and access medical records with total security.";
   };
-
-  const getCTATitle = () => {
-    if (!isAuthenticated) return 'Ready to Get Started?';
-    if (user?.role === 'patient') return 'Continue Your Health Journey';
-    if (user?.role === 'doctor') return 'Manage Your Practice';
-    if (user?.role === 'admin') return 'Manage Your Hospital';
-    return 'Ready to Get Started?';
-  };
-
-  const getCTASubtitle = () => {
-    if (!isAuthenticated) {
-      return 'Join thousands of patients and healthcare providers on our platform.';
-    }
-    if (user?.role === 'patient') {
-      return 'Access your dashboard to view appointments, prescriptions, and more.';
-    }
-    if (user?.role === 'doctor') {
-      return 'Access your dashboard to manage appointments and patient care.';
-    }
-    if (user?.role === 'admin') {
-      return 'Access your dashboard to manage hospital operations and analytics.';
-    }
-    return 'Join thousands of patients and healthcare providers on our platform.';
-  };
-
-  // Loading Skeleton for Stats
-  const StatsSkeleton = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="bg-white rounded-2xl p-6 shadow-md border border-slate-100 animate-pulse">
-          <div className="w-12 h-12 bg-slate-200 rounded-xl mx-auto mb-3"></div>
-          <div className="h-8 bg-slate-200 rounded w-24 mx-auto mb-2"></div>
-          <div className="h-4 bg-slate-200 rounded w-32 mx-auto"></div>
-        </div>
-      ))}
-    </div>
-  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-teal-50/30">
-      {/* ========== HERO SECTION ========== */}
-      <section className="w-full bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 -right-40 w-96 h-96 bg-emerald-400 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-teal-400 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-300 rounded-full blur-3xl"></div>
-        </div>
+    <div className="w-full min-h-screen bg-slate-50/70 pb-12 font-sans">
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 space-y-8">
+        {/* Landing Page Hero Banner */}
+        <div className="w-full bg-emerald-700 text-white rounded-3xl p-6 sm:p-10 shadow-md relative overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center relative z-10">
+            <div className="md:col-span-7 space-y-4 text-left">
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
+                <ShieldCheck className="w-4 h-4 text-emerald-300" />
+                <span className="text-xs font-semibold text-emerald-100">
+                  {isAuthenticated
+                    ? `Hello, ${user?.fullName || user?.name || "User"}`
+                    : "Trusted Healthcare Partner"}
+                </span>
+              </div>
 
-        {/* Medical Pattern Overlay */}
-        <div className="absolute inset-0 opacity-[0.03]">
-          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="medical-pattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
-                <circle cx="30" cy="30" r="3" fill="white" />
-                <path d="M30 15 L30 45 M15 30 L45 30" stroke="white" strokeWidth="1.5" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#medical-pattern)" />
-          </svg>
-        </div>
+              <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                {getHeroTitle()}
+              </h1>
 
-        <div className="relative max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
-          <div className="text-center max-w-4xl mx-auto">
-            {/* Role Badge */}
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/20">
-              <ShieldCheckIcon className="w-4 h-4 text-emerald-300" />
-              <span className="text-xs font-medium text-white/90">
-                {isAuthenticated ? `Welcome, ${user?.name || user?.role}` : 'Secure & Trusted Platform'}
-              </span>
-            </div>
+              <p className="text-emerald-100/90 text-xs sm:text-sm font-medium leading-relaxed max-w-xl">
+                {getHeroSubtitle()}
+              </p>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-4 leading-tight">
-              {getHeroTitle().split('in Seconds')[0]}
-              {getHeroTitle().includes('in Seconds') && (
-                <>
-                  <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 via-teal-200 to-cyan-200">
-                    in Seconds
-                  </span>
-                </>
-              )}
-            </h1>
-
-            <p className="text-base sm:text-lg md:text-xl text-teal-100 max-w-2xl mx-auto mb-8 leading-relaxed">
-              {getHeroSubtitle()}
-            </p>
-
-            {/* CTA Button - Role Aware */}
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link
-                to={getDashboardPath()}
-                className="group bg-white text-teal-700 hover:bg-slate-50 px-8 py-3.5 rounded-xl text-base font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2"
-              >
-                {getButtonText()}
-                <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              {!isAuthenticated && (
+              <div className="pt-2 flex flex-wrap gap-3">
                 <Link
-                  to="/login"
-                  className="bg-transparent border-2 border-white/80 hover:bg-white/10 backdrop-blur-sm px-8 py-3.5 rounded-xl text-base font-semibold transition-all duration-300"
+                  to={getDashboardPath()}
+                  className="bg-white hover:bg-emerald-50 text-slate-900 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-2xs transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  Sign In
+                  <span>{getButtonText()}</span>
+                  <ArrowRight className="w-4 h-4 text-emerald-700" />
                 </Link>
-              )}
+
+                {!isAuthenticated && (
+                  <Link
+                    to="/login"
+                    className="bg-white/15 hover:bg-white/20 text-white border border-white/20 px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all cursor-pointer"
+                  >
+                    Sign In
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            {/* Public Images Integration Showcase Card */}
+            <div className="md:col-span-5 flex justify-center md:justify-end">
+              <div className="relative w-full max-w-xs sm:max-w-sm">
+                <div className="overflow-hidden rounded-3xl shadow-lg border-2 border-white/20 bg-emerald-900/40">
+                  <img
+                    src="/images/hospital1.png"
+                    alt="Doctor Consultation"
+                    className="w-full h-64 sm:h-72 lg:h-80 object-cover object-center"
+                    onError={(e) => {
+                      e.target.src = "/images/hospital.png";
+                    }}
+                  />
+                </div>
+
+                <div className="absolute -bottom-3 -left-3 bg-white text-slate-900 px-3.5 py-2.5 rounded-2xl text-xs font-bold shadow-md flex items-center gap-2.5 border border-slate-100">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <div>
+                    <p className="text-[11px] text-slate-800 leading-tight">
+                      Verified Doctors
+                    </p>
+                    <p className="text-[9px] text-slate-400 font-normal mt-0.5">
+                      24/7 Service Available
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+
+          <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         </div>
 
-        {/* Wave Divider */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 80L60 70C120 60 240 40 360 35C480 30 600 30 720 35C840 40 960 50 1080 55C1200 60 1320 60 1380 60L1440 60V80H0Z" fill="#f1f5f9"/>
-          </svg>
-        </div>
-      </section>
-
-      {/* ========== FEATURES SECTION ========== */}
-      <section className="w-full py-16 px-4 bg-gradient-to-br from-slate-50 via-gray-50 to-teal-50/30">
-        <div className="max-w-full mx-auto">
-          <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1.5 bg-teal-100 text-teal-700 rounded-full text-sm font-semibold mb-4">
-              Features
+        {/* Platform Feature Cards Grid */}
+        <div className="space-y-4">
+          <div className="text-center space-y-1">
+            <span className="inline-block px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full text-xs font-bold">
+              Why Choose Us
             </span>
-            <h2 className="text-2xl md:text-4xl font-bold text-slate-900 mb-3">
-              {isAuthenticated && user?.role === 'patient'
-                ? 'Everything You Need for Better Healthcare'
-                : 'Comprehensive Healthcare Management'}
+            <h2 className="text-lg sm:text-2xl font-bold text-slate-900">
+              {isAuthenticated && user?.role === "patient"
+                ? "Everything You Need for Healthcare"
+                : "Comprehensive Hospital Management Solutions"}
             </h2>
-            <p className="text-base md:text-lg text-slate-600 max-w-2xl mx-auto">
-              {isAuthenticated && user?.role === 'patient'
-                ? 'Manage your health journey with ease and confidence'
-                : 'Streamline hospital operations with our complete solution'}
-            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {isAuthenticated && user?.role === 'patient' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {isAuthenticated && user?.role === "patient" ? (
               <>
                 <FeatureCard
-                  icon={<CalendarIcon className="w-6 h-6 text-teal-600" />}
-                  title="Easy Booking"
-                  description="Book appointments with your preferred doctors in just a few clicks"
-                  color="teal"
+                  icon={Calendar}
+                  title="Instant Booking"
+                  description="Choose specialist doctors and preferred slots easily."
                 />
                 <FeatureCard
-                  icon={<ClockIcon className="w-6 h-6 text-cyan-600" />}
-                  title="Track Appointments"
-                  description="View upcoming, past, and cancelled appointments at a glance"
-                  color="cyan"
+                  icon={Clock}
+                  title="Schedule Tracking"
+                  description="Monitor active, completed, or upcoming appointments."
                 />
                 <FeatureCard
-                  icon={<ClipboardDocumentListIcon className="w-6 h-6 text-emerald-600" />}
-                  title="View Prescriptions"
-                  description="Access your digital prescriptions and medical history securely"
-                  color="emerald"
+                  icon={ClipboardList}
+                  title="Digital Prescriptions"
+                  description="View prescription notes and treatment plans digitally."
                 />
                 <FeatureCard
-                  icon={<CheckBadgeIcon className="w-6 h-6 text-violet-600" />}
-                  title="24/7 Access"
-                  description="Manage your healthcare needs anytime from any device"
-                  color="violet"
+                  icon={BadgeCheck}
+                  title="Verified Care"
+                  description="Access certified doctors and medical specialists."
                 />
               </>
             ) : (
               <>
                 <FeatureCard
-                  icon={<UserGroupIcon className="w-6 h-6 text-teal-600" />}
+                  icon={Users}
                   title="Doctor Management"
-                  description="Manage doctor profiles, schedules, and availability with ease"
-                  color="teal"
+                  description="Configure schedules, departments, and consultation rates."
                 />
                 <FeatureCard
-                  icon={<UserPlusIcon className="w-6 h-6 text-cyan-600" />}
-                  title="Patient Portal"
-                  description="Patients can book appointments and access their health records"
-                  color="cyan"
+                  icon={UserPlus}
+                  title="Patient Services"
+                  description="Streamlined patient appointment requests and history."
                 />
                 <FeatureCard
-                  icon={<CalendarIcon className="w-6 h-6 text-emerald-600" />}
-                  title="Appointment Scheduling"
-                  description="Real-time scheduling with automated conflict detection"
-                  color="emerald"
+                  icon={Calendar}
+                  title="Real-Time Slots"
+                  description="Automated slot conflict detection and availability."
                 />
                 <FeatureCard
-                  icon={<ChartBarIcon className="w-6 h-6 text-violet-600" />}
-                  title="Analytics Dashboard"
-                  description="Complete system oversight with comprehensive analytics"
-                  color="violet"
+                  icon={BarChart3}
+                  title="System Insights"
+                  description="Track patient volume and hospital performance metrics."
                 />
               </>
             )}
           </div>
         </div>
-      </section>
-      {/* ========== CTA FOOTER SECTION ========== */}
-      <section className="w-full py-16 px-4 bg-gradient-to-r from-teal-600 via-teal-700 to-emerald-800">
-        <div className="max-w-4xl mx-auto text-center text-white">
-          <h2 className="text-2xl md:text-4xl font-bold mb-4">
-            {getCTATitle()}
-          </h2>
-          <p className="text-base md:text-lg text-teal-100 mb-6">
-            {getCTASubtitle()}
-          </p>
+
+        {/* Bottom Call-to-Action Card */}
+        <div className="bg-white rounded-3xl shadow-2xs border border-slate-200/80 p-6 text-center space-y-3">
+          <div className="w-10 h-10 bg-emerald-50 text-emerald-700 rounded-xl flex items-center justify-center mx-auto border border-emerald-100">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900">
+              Seamless Health Management
+            </h2>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
+              Get started with our healthcare platform to manage schedules,
+              doctors, and patient visits efficiently.
+            </p>
+          </div>
           <Link
             to={getDashboardPath()}
-            className="inline-flex items-center gap-3 bg-white text-teal-700 hover:bg-slate-50 px-8 py-3.5 rounded-xl text-base font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
+            className="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow-2xs cursor-pointer"
           >
-            {getButtonText()}
-            <ArrowRightIcon className="w-5 h-5" />
+            <span>{getButtonText()}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-      </section>
-    </div>
-  );
-};
-
-// ========== COMPONENTS ==========
-const FeatureCard = ({ icon, title, description, color }) => {
-  const colors = {
-    teal: 'hover:border-teal-200 hover:shadow-teal-100',
-    cyan: 'hover:border-cyan-200 hover:shadow-cyan-100',
-    emerald: 'hover:border-emerald-200 hover:shadow-emerald-100',
-    violet: 'hover:border-violet-200 hover:shadow-violet-100'
-  };
-
-  const bgColors = {
-    teal: 'bg-teal-50',
-    cyan: 'bg-cyan-50',
-    emerald: 'bg-emerald-50',
-    violet: 'bg-violet-50'
-  };
-
-  return (
-    <div className={`bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-slate-100 ${colors[color]}`}>
-      <div className={`${bgColors[color]} w-12 h-12 rounded-xl flex items-center justify-center mb-4 mx-auto transition-all duration-300 group-hover:scale-110`}>
-        {icon}
       </div>
-      <h3 className="text-base font-semibold text-slate-900 mb-2 text-center">{title}</h3>
-      <p className="text-sm text-slate-600 text-center leading-relaxed">{description}</p>
-    </div>
-  );
-};
-
-const StatCard = ({ number, label, icon, color }) => {
-  const colors = {
-    teal: 'border-teal-200 hover:shadow-teal-100',
-    cyan: 'border-cyan-200 hover:shadow-cyan-100',
-    emerald: 'border-emerald-200 hover:shadow-emerald-100',
-    violet: 'border-violet-200 hover:shadow-violet-100'
-  };
-
-  const gradients = {
-    teal: 'from-teal-600 to-cyan-600',
-    cyan: 'from-cyan-600 to-teal-600',
-    emerald: 'from-emerald-600 to-teal-600',
-    violet: 'from-violet-600 to-indigo-600'
-  };
-
-  return (
-    <div className={`bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border ${colors[color]}`}>
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-50 to-white flex items-center justify-center mx-auto mb-3">
-        {icon}
-      </div>
-      <div className={`text-3xl md:text-4xl font-extrabold bg-gradient-to-r ${gradients[color]} bg-clip-text text-transparent`}>
-        {typeof number === 'number' ? number.toLocaleString() : '—'}
-      </div>
-      <div className="text-sm text-slate-600 font-medium mt-1">{label}</div>
     </div>
   );
 };
 
 export default Home;
-
-
-
-
-
-

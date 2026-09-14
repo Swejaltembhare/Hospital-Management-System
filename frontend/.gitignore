@@ -1,4 +1,15 @@
-# Logs
+# Environment & Secret Files
+.env
+.env.*
+!.env.example
+
+# Dependencies & Build Outputs
+node_modules
+dist
+dist-ssr
+*.local
+
+# Application Logs
 logs
 *.log
 npm-debug.log*
@@ -7,12 +18,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# Editor & System Files
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -22,7 +28,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-.env
-.env.*
-!.env.example

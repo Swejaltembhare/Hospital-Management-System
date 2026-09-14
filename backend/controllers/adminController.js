@@ -1,4 +1,3 @@
-// controllers/adminController.js
 import mongoose from "mongoose";
 import User from "../models/User.js";
 import Doctor from "../models/Doctor.js";
@@ -6,12 +5,78 @@ import Patient from "../models/Patient.js";
 import Appointment from "../models/Appointment.js";
 import Admin from "../models/Admin.js";
 import { logUserActivity } from "../utils/authHelpers.js";
+import { logAudit } from "../middleware/auditLog.js";
+import SupportMessage from "../models/SupportMessage.js";
+import bcrypt from "bcryptjs";
 
-// ============================================
-// DOCTOR MANAGEMENT - CRUD Operations
-// ============================================
+// Reset password for doctor or patient account by admin
+export const resetUserPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
 
-// Get all doctors (with enhanced filtering)
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 6 characters long",
+      });
+    }
+
+    let user = await User.findById(id);
+
+    if (!user) {
+      const doctorDoc = await Doctor.findById(id);
+      if (doctorDoc) {
+        user = await User.findById(doctorDoc.user);
+      } else {
+        const patientDoc = await Patient.findById(id);
+        if (patientDoc) {
+          user = await User.findById(patientDoc.user);
+        }
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User account not found",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    if (req.userId) {
+      await logUserActivity(req.userId, "ADMIN_RESET_USER_PASSWORD", {
+        targetUserId: user._id,
+        userRole: user.role,
+      });
+
+      await logAudit(
+        req,
+        "UPDATE",
+        "USER",
+        user._id,
+        user.fullName,
+        `Admin reset password for ${user.role}: ${user.fullName}`
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Password reset successfully for ${user.fullName}`,
+    });
+  } catch (error) {
+    console.error("Admin reset user password error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to reset user password",
+    });
+  }
+};
+
+// Fetch doctors list with search and pagination filters
 export const getAllDoctors = async (req, res) => {
   try {
     const { search, department, isVerified, page = 1, limit = 10 } = req.query;
@@ -68,14 +133,14 @@ export const getAllDoctors = async (req, res) => {
   }
 };
 
-// Get single doctor by ID
+// Fetch single doctor profile by document ID
 export const getDoctorById = async (req, res) => {
   try {
     const { id } = req.params;
 
     const doctor = await Doctor.findById(id).populate(
       "user",
-      "fullName email phoneNumber isActive",
+      "fullName email phoneNumber isActive"
     );
 
     if (!doctor) {
@@ -98,7 +163,7 @@ export const getDoctorById = async (req, res) => {
   }
 };
 
-// Create new doctor - FIXED VERSION
+// Register a new doctor along with associated user account
 export const createDoctor = async (req, res) => {
   try {
     const {
@@ -112,9 +177,9 @@ export const createDoctor = async (req, res) => {
       experience,
       consultationFee,
       availableSlots,
+      availability,
     } = req.body;
 
-    // Validate required fields
     if (
       !fullName ||
       !email ||
@@ -128,15 +193,13 @@ export const createDoctor = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required",
+        message: "All required fields must be filled",
       });
     }
 
-    // Check if user already exists
     let user = await User.findOne({ email });
 
     if (user) {
-      // Check if user is already a doctor
       const existingDoctor = await Doctor.findOne({ user: user._id });
       if (existingDoctor) {
         return res.status(400).json({
@@ -145,22 +208,16 @@ export const createDoctor = async (req, res) => {
         });
       }
     } else {
-      // ✅ FIX: Create new user with doctor role
-      // Let User model's pre('save') hook handle password hashing
       user = await User.create({
         fullName,
         email,
         phoneNumber,
-        password, // Plain password - model will hash it automatically
+        password,
         role: "doctor",
         isActive: true,
       });
-
-      // Log user creation
-      console.log(`Created new doctor user: ${email}`);
     }
 
-    // Create doctor profile
     const doctor = await Doctor.create({
       user: user._id,
       department,
@@ -168,19 +225,32 @@ export const createDoctor = async (req, res) => {
       qualification,
       experience: parseInt(experience),
       consultationFee: parseInt(consultationFee),
-      availableSlots,
+      availableSlots: availableSlots || availability || [],
       isAvailable: true,
       isVerified: true,
     });
 
-    // Populate user data
     await doctor.populate("user", "fullName email phoneNumber isActive");
 
-    // Log activity
-    await logUserActivity(req.userId, "CREATE_DOCTOR", {
-      doctorId: doctor._id,
-      email,
-    });
+    if (req.userId) {
+      try {
+        await logUserActivity(req.userId, "CREATE_DOCTOR", {
+          doctorId: doctor._id,
+          email,
+        });
+
+        await logAudit(
+          req,
+          "CREATE",
+          "DOCTOR",
+          doctor._id,
+          doctor.user?.fullName || fullName,
+          `New doctor registered: ${doctor.user?.fullName || fullName}`
+        );
+      } catch (auditErr) {
+        console.warn("Doctor create audit skipped:", auditErr.message);
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -190,11 +260,10 @@ export const createDoctor = async (req, res) => {
   } catch (error) {
     console.error("Error creating doctor:", error);
 
-    // Handle duplicate key error
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: "Email already exists",
+        message: "Email or phone number already exists",
       });
     }
 
@@ -206,7 +275,7 @@ export const createDoctor = async (req, res) => {
   }
 };
 
-// Update doctor
+// Update existing doctor profile and linked user records
 export const updateDoctor = async (req, res) => {
   try {
     const { id } = req.params;
@@ -221,9 +290,10 @@ export const updateDoctor = async (req, res) => {
       consultationFee,
       isAvailable,
       isVerified,
+      availableSlots,
+      availability,
     } = req.body;
 
-    // Find doctor
     const doctor = await Doctor.findById(id);
     if (!doctor) {
       return res.status(404).json({
@@ -232,7 +302,6 @@ export const updateDoctor = async (req, res) => {
       });
     }
 
-    // Update user data if provided
     const userUpdate = {};
     if (fullName) userUpdate.fullName = fullName;
     if (email) userUpdate.email = email;
@@ -245,27 +314,38 @@ export const updateDoctor = async (req, res) => {
       });
     }
 
-    // Update doctor data
     const doctorUpdate = {};
     if (department) doctorUpdate.department = department;
     if (specialization) doctorUpdate.specialization = specialization;
     if (qualification) doctorUpdate.qualification = qualification;
-    if (experience) doctorUpdate.experience = parseInt(experience);
-    if (consultationFee)
-      doctorUpdate.consultationFee = parseInt(consultationFee);
+    if (experience !== undefined) doctorUpdate.experience = parseInt(experience);
+    if (consultationFee !== undefined) doctorUpdate.consultationFee = parseInt(consultationFee);
     if (isAvailable !== undefined) doctorUpdate.isAvailable = isAvailable;
     if (isVerified !== undefined) doctorUpdate.isVerified = isVerified;
+    if (availableSlots || availability) {
+      doctorUpdate.availableSlots = availableSlots || availability;
+    }
 
     const updatedDoctor = await Doctor.findByIdAndUpdate(id, doctorUpdate, {
       new: true,
       runValidators: true,
     }).populate("user", "fullName email phoneNumber isActive");
 
-    // Log activity
-    await logUserActivity(req.userId, "UPDATE_DOCTOR", {
-      doctorId: id,
-      updates: doctorUpdate,
-    });
+    if (req.userId) {
+      await logUserActivity(req.userId, "UPDATE_DOCTOR", {
+        doctorId: id,
+        updates: doctorUpdate,
+      });
+
+      await logAudit(
+        req,
+        "UPDATE",
+        "DOCTOR",
+        doctor._id,
+        doctor.user?.fullName || "Doctor",
+        `Doctor updated: ${Object.keys(doctorUpdate).join(", ")}`
+      );
+    }
 
     res.json({
       success: true,
@@ -278,7 +358,7 @@ export const updateDoctor = async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: "Email already exists",
+        message: "Email or phone number already exists",
       });
     }
 
@@ -290,7 +370,7 @@ export const updateDoctor = async (req, res) => {
   }
 };
 
-// Delete doctor
+// Permanently delete doctor and corresponding user account
 export const deleteDoctor = async (req, res) => {
   try {
     const { id } = req.params;
@@ -303,22 +383,30 @@ export const deleteDoctor = async (req, res) => {
       });
     }
 
-    // Check if doctor has appointments
     const hasAppointments = await Appointment.exists({ doctor: id });
     if (hasAppointments) {
       return res.status(400).json({
         success: false,
-        message:
-          "Cannot delete doctor with existing appointments. Archive instead.",
+        message: "Cannot delete doctor with existing appointments. Archive instead.",
       });
     }
 
-    // Delete user account
+    const doctorName = doctor.user?.fullName || "Doctor";
+
     await User.findByIdAndDelete(doctor.user);
     await Doctor.findByIdAndDelete(id);
 
-    // Log activity
-    await logUserActivity(req.userId, "DELETE_DOCTOR", { doctorId: id });
+    if (req.userId) {
+      await logUserActivity(req.userId, "DELETE_DOCTOR", { doctorId: id });
+      await logAudit(
+        req,
+        "DELETE",
+        "DOCTOR",
+        id,
+        doctorName,
+        `Doctor deleted: ${doctorName}`
+      );
+    }
 
     res.json({
       success: true,
@@ -334,13 +422,10 @@ export const deleteDoctor = async (req, res) => {
   }
 };
 
-// ============================================
-// PATIENT MANAGEMENT
-// ============================================
+// Fetch patients list with search capabilities and pagination
 export const getAllPatients = async (req, res) => {
   try {
     const { search, page = 1, limit = 10 } = req.query;
-
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     let patientQuery = Patient.find()
@@ -388,6 +473,7 @@ export const getAllPatients = async (req, res) => {
   }
 };
 
+// Fetch single patient details including full appointment history
 export const getPatientById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -403,7 +489,6 @@ export const getPatientById = async (req, res) => {
       });
     }
 
-    // Get appointments
     const appointments = await Appointment.find({ patient: id })
       .populate("doctor", "specialization department")
       .populate("doctor.user", "fullName")
@@ -425,9 +510,192 @@ export const getPatientById = async (req, res) => {
   }
 };
 
-// ============================================
-// DASHBOARD
-// ============================================
+// Create new patient record and associated user credentials
+export const createPatient = async (req, res) => {
+  try {
+    const { fullName, email, phoneNumber, password, age, gender, bloodGroup, address, dateOfBirth } = req.body;
+
+    if (!fullName || !email || !phoneNumber || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Full name, email, phone number, and password are required.",
+      });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User with this email already exists",
+      });
+    }
+
+    const user = await User.create({
+      fullName,
+      email,
+      phoneNumber,
+      password,
+      role: "patient",
+      isActive: true,
+    });
+
+    let finalDob = dateOfBirth ? new Date(dateOfBirth) : null;
+    if (!finalDob && age) {
+      const birthYear = new Date().getFullYear() - parseInt(age);
+      finalDob = new Date(birthYear, 0, 1);
+    }
+
+    const patient = await Patient.create({
+      user: user._id,
+      dateOfBirth: finalDob,
+      gender: gender || "Male",
+      bloodGroup: bloodGroup || "A+",
+      address: typeof address === "string" ? { street: address } : address || {},
+    });
+
+    await patient.populate("user", "fullName email phoneNumber isActive createdAt");
+
+    if (req.userId) {
+      try {
+        await logUserActivity(req.userId, "CREATE_PATIENT", { patientId: patient._id, email });
+        await logAudit(req, "CREATE", "PATIENT", patient._id, fullName, `New patient registered: ${fullName}`);
+      } catch (logErr) {
+        console.warn("Audit log skipped:", logErr.message);
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Patient registered successfully",
+      data: patient,
+    });
+  } catch (error) {
+    console.error("Error creating patient detailed:", error);
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((val) => val.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(", "),
+      });
+    }
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Email or phone number already exists",
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create patient",
+    });
+  }
+};
+
+// Update existing patient data and profile details
+export const updatePatient = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fullName, email, phoneNumber, age, gender, bloodGroup, address, status } = req.body;
+
+    const patient = await Patient.findById(id);
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found",
+      });
+    }
+
+    const userUpdate = {};
+    if (fullName) userUpdate.fullName = fullName;
+    if (email) userUpdate.email = email;
+    if (phoneNumber) userUpdate.phoneNumber = phoneNumber;
+    if (status !== undefined) userUpdate.isActive = status === "active";
+
+    if (Object.keys(userUpdate).length > 0) {
+      await User.findByIdAndUpdate(patient.user, userUpdate, {
+        new: true,
+        runValidators: true,
+      });
+    }
+
+    const patientUpdate = {};
+    if (gender) patientUpdate.gender = gender;
+    if (bloodGroup) patientUpdate.bloodGroup = bloodGroup;
+    if (address) patientUpdate.address = typeof address === "string" ? { street: address } : address;
+    if (age) {
+      const birthYear = new Date().getFullYear() - parseInt(age);
+      patientUpdate.dateOfBirth = new Date(birthYear, 0, 1);
+    }
+
+    const updatedPatient = await Patient.findByIdAndUpdate(id, patientUpdate, {
+      new: true,
+      runValidators: true,
+    }).populate("user", "fullName email phoneNumber isActive createdAt");
+
+    if (req.userId) {
+      await logUserActivity(req.userId, "UPDATE_PATIENT", { patientId: id });
+      await logAudit(req, "UPDATE", "PATIENT", id, fullName || "Patient", "Patient details updated");
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Patient updated successfully",
+      data: updatedPatient,
+    });
+  } catch (error) {
+    console.error("Error updating patient:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update patient",
+      error: error.message,
+    });
+  }
+};
+
+// Remove patient and linked user document safely
+export const deletePatient = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const patient = await Patient.findById(id);
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found",
+      });
+    }
+
+    const hasAppointments = await Appointment.exists({ patient: id });
+    if (hasAppointments) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete patient with active appointment history.",
+      });
+    }
+
+    await User.findByIdAndDelete(patient.user);
+    await Patient.findByIdAndDelete(id);
+
+    if (req.userId) {
+      await logUserActivity(req.userId, "DELETE_PATIENT", { patientId: id });
+      await logAudit(req, "DELETE", "PATIENT", id, "Patient", "Patient profile removed");
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Patient deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting patient:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete patient",
+      error: error.message,
+    });
+  }
+};
+
+// Compute analytics metrics for system admin dashboard
 export const getDashboardStats = async (req, res) => {
   try {
     const [
@@ -477,6 +745,7 @@ export const getDashboardStats = async (req, res) => {
   }
 };
 
+// Fetch recent activity audit logs for current admin
 export const getRecentActivity = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
@@ -506,9 +775,7 @@ export const getRecentActivity = async (req, res) => {
   }
 };
 
-// ============================================
-// APPOINTMENT MANAGEMENT
-// ============================================
+// Retrieve all system appointments filtered by date or status
 export const getAllAppointments = async (req, res) => {
   try {
     const { status, date, limit = 10 } = req.query;
@@ -548,6 +815,7 @@ export const getAllAppointments = async (req, res) => {
   }
 };
 
+// Get detailed appointment object by ID
 export const getAppointmentById = async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id)
@@ -586,6 +854,7 @@ export const getAppointmentById = async (req, res) => {
   }
 };
 
+// Update status of appointment booking
 export const updateAppointmentStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -600,7 +869,7 @@ export const updateAppointmentStatus = async (req, res) => {
     const appointment = await Appointment.findByIdAndUpdate(
       req.params.id,
       { status },
-      { new: true, runValidators: true },
+      { new: true, runValidators: true }
     );
 
     if (!appointment) {
@@ -614,6 +883,15 @@ export const updateAppointmentStatus = async (req, res) => {
       appointmentId: req.params.id,
       status,
     });
+
+    await logAudit(
+      req,
+      "UPDATE",
+      "APPOINTMENT",
+      appointment._id,
+      `Appointment ${status}`,
+      `Appointment status updated to ${status}`
+    );
 
     res.json({
       success: true,
@@ -629,12 +907,9 @@ export const updateAppointmentStatus = async (req, res) => {
   }
 };
 
-// ============================================
-// SYSTEM HEALTH
-// ============================================
+// Return operational database and server status indicators
 export const getSystemHealth = async (req, res) => {
   try {
-    // Check database connection
     const dbStatus =
       mongoose.connection.readyState === 1 ? "Connected" : "Disconnected";
 
@@ -660,9 +935,6 @@ export const getSystemHealth = async (req, res) => {
   }
 };
 
-// ============================================
-// SETTINGS
-// ============================================
 let settingsCache = {
   hospitalName: "MediCare Hospital",
   hospitalAddress: "123 Healthcare Blvd, Medical District",
@@ -696,6 +968,7 @@ let settingsCache = {
   },
 };
 
+// Retrieve active hospital settings configuration
 export const getSettings = async (req, res) => {
   try {
     res.json({
@@ -711,6 +984,7 @@ export const getSettings = async (req, res) => {
   }
 };
 
+// Update active system settings cache and log changes
 export const updateSettings = async (req, res) => {
   try {
     settingsCache = { ...settingsCache, ...req.body };
@@ -718,6 +992,15 @@ export const updateSettings = async (req, res) => {
     await logUserActivity(req.userId, "UPDATE_SETTINGS", {
       settings: req.body,
     });
+
+    await logAudit(
+      req,
+      "UPDATE",
+      "SETTINGS",
+      "system",
+      "System Settings",
+      `Settings updated: ${Object.keys(req.body).join(", ")}`
+    );
 
     res.json({
       success: true,
@@ -729,6 +1012,374 @@ export const updateSettings = async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to update settings",
+    });
+  }
+};
+
+// Retrieve support messages list with pagination
+export const getSupportMessages = async (req, res) => {
+  try {
+    const { status, page = 1, limit = 10 } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [messages, total] = await Promise.all([
+      SupportMessage.find(filter)
+        .populate("user", "fullName email phoneNumber")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      SupportMessage.countDocuments(filter),
+    ]);
+
+    return res.json({
+      success: true,
+      data: messages,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get support messages error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch support messages",
+    });
+  }
+};
+
+// Get single support ticket details by ID
+export const getSupportMessageById = async (req, res) => {
+  try {
+    const supportMessage = await SupportMessage.findById(
+      req.params.id
+    ).populate("user", "fullName email phoneNumber");
+
+    if (!supportMessage) {
+      return res.status(404).json({
+        success: false,
+        error: "Support message not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: supportMessage,
+    });
+  } catch (error) {
+    console.error("Get support message error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch support message",
+    });
+  }
+};
+
+// Update status of specific support ticket
+export const updateSupportMessageStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const allowedStatuses = ["open", "in-progress", "resolved"];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid support message status",
+      });
+    }
+
+    const supportMessage = await SupportMessage.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    ).populate("user", "fullName email phoneNumber");
+
+    if (!supportMessage) {
+      return res.status(404).json({
+        success: false,
+        error: "Support message not found",
+      });
+    }
+
+    await logUserActivity(req.userId, "UPDATE_SUPPORT_MESSAGE", {
+      supportMessageId: supportMessage._id,
+      status,
+    });
+
+    await logAudit(
+      req,
+      "UPDATE",
+      "SUPPORT_MESSAGE",
+      supportMessage._id,
+      supportMessage.subject,
+      `Support message status updated to ${status}`
+    );
+
+    return res.json({
+      success: true,
+      message: "Support message status updated successfully",
+      data: supportMessage,
+    });
+  } catch (error) {
+    console.error("Update support message error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to update support message",
+    });
+  }
+};
+
+// Fetch unread support ticket notifications for admin panel
+export const getAdminNotifications = async (req, res) => {
+  try {
+    const openSupportMessages = await SupportMessage.find({
+      status: { $regex: /^(open|pending)$/i },
+    })
+      .populate("user", "fullName email")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    const notifications = openSupportMessages.map((msg) => {
+      const patientName =
+        msg.user?.fullName || msg.email?.split("@")[0] || "Patient";
+
+      return {
+        _id: msg._id,
+        title: msg.subject || "New Support Ticket",
+        message: `${patientName}: ${msg.message || "Sent a support request"}`,
+        type: (msg.subject || "").toUpperCase().includes("EMERGENCY")
+          ? "emergency"
+          : "patient",
+        createdAt: msg.createdAt,
+        read: (msg.status || "").toLowerCase() === "resolved",
+        link: "/admin/support",
+      };
+    });
+
+    const unreadCount = notifications.filter((n) => !n.read).length;
+
+    return res.status(200).json({
+      success: true,
+      notifications,
+      unreadCount,
+    });
+  } catch (error) {
+    console.error("Get admin notifications error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch admin notifications",
+    });
+  }
+};
+
+// Mark single support notification ticket as resolved
+export const markNotificationAsRead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await SupportMessage.findByIdAndUpdate(id, { status: "RESOLVED" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Notification marked as read" });
+  } catch (error) {
+    console.error("Mark as read error:", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Failed to mark as read" });
+  }
+};
+
+// Mark all pending support notifications as resolved
+export const markAllNotificationsAsRead = async (req, res) => {
+  try {
+    await SupportMessage.updateMany(
+      { status: { $regex: /^(open|pending)$/i } },
+      { $set: { status: "RESOLVED" } }
+    );
+    return res
+      .status(200)
+      .json({ success: true, message: "All notifications marked as read" });
+  } catch (error) {
+    console.error("Mark all read error:", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Failed to mark all as read" });
+  }
+};
+
+// Delete support message ticket permanently
+export const deleteSupportMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const supportMessage = await SupportMessage.findByIdAndDelete(id);
+
+    if (!supportMessage) {
+      return res.status(404).json({
+        success: false,
+        error: "Support message not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Support ticket deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete support message error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to delete support message",
+    });
+  }
+};
+
+let manualInvoices = [];
+
+// Fetch aggregate list of auto-generated and manual invoices
+export const getAllInvoices = async (req, res) => {
+  try {
+    const appointments = await Appointment.find()
+      .populate({
+        path: "patient",
+        populate: { path: "user", select: "fullName email phoneNumber" },
+      })
+      .populate({
+        path: "doctor",
+        populate: { path: "user", select: "fullName" },
+      })
+      .sort({ createdAt: -1 });
+
+    const autoInvoices = appointments.map((app) => {
+      const docFee = app.doctor?.consultationFee || 500;
+      const status =
+        app.status === "completed"
+          ? "Paid"
+          : app.status === "cancelled"
+          ? "Cancelled"
+          : "Pending";
+
+      return {
+        _id: app._id,
+        invoiceId: `INV-${app._id.toString().slice(-6).toUpperCase()}`,
+        patientName: app.patient?.user?.fullName || "Patient",
+        patientEmail: app.patient?.user?.email || "N/A",
+        doctorName: app.doctor?.user?.fullName || "Doctor",
+        department: app.doctor?.department || "General",
+        consultationFee: docFee,
+        totalAmount: docFee,
+        paymentStatus: status,
+        billingDate: app.date || app.createdAt,
+        type: "Appointment Fee",
+      };
+    });
+
+    const allInvoices = [...manualInvoices, ...autoInvoices];
+
+    return res.status(200).json({
+      success: true,
+      data: allInvoices,
+    });
+  } catch (error) {
+    console.error("Get all invoices error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to fetch invoices",
+    });
+  }
+};
+
+// Create a new manual billing invoice entry
+export const createInvoice = async (req, res) => {
+  try {
+    const billData = {
+      _id: new mongoose.Types.ObjectId().toString(),
+      ...req.body,
+      createdAt: new Date(),
+    };
+    manualInvoices.unshift(billData);
+
+    return res.status(201).json({
+      success: true,
+      message: "Invoice created successfully",
+      data: billData,
+    });
+  } catch (error) {
+    console.error("Create invoice error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to create invoice",
+    });
+  }
+};
+
+// Update payment status for manual or appointment invoice
+export const updateInvoiceStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const app = await Appointment.findById(id);
+    if (app) {
+      app.status = status === "paid" ? "completed" : status;
+      await app.save();
+    } else {
+      manualInvoices = manualInvoices.map((inv) =>
+        inv._id === id ? { ...inv, paymentStatus: "Paid", status: "Paid" } : inv
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Invoice status updated successfully",
+    });
+  } catch (error) {
+    console.error("Update invoice status error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Failed to update invoice status",
+    });
+  }
+};
+
+// Change password for logged-in admin user
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const adminUser = await User.findById(req.userId).select("+password");
+
+    if (!adminUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin user record not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, adminUser.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    adminUser.password = await bcrypt.hash(newPassword, salt);
+    await adminUser.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    console.error("Change Password Backend Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error while updating password",
     });
   }
 };

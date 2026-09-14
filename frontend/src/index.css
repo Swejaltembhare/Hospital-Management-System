@@ -16,12 +16,14 @@
   --color-success: #006a61;
 }
 
+/* Core Base Styles & Body Reset */
 @layer base {
   body {
-    @apply bg-surface font-sans text-on-surface min-h-screen m-0;
+    @apply bg-surface font-sans text-on-surface min-h-screen m-0 antialiased;
   }
 }
 
+/* Custom Component Utility Classes */
 @layer components {
   .transition-soft {
     @apply transition-all duration-200 ease-in-out;

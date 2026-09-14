@@ -1,87 +1,47 @@
-// /** @type {import('tailwindcss').Config} */
-// export default {
-//   content: [
-//     "./index.html",
-//     "./src/**/*.{js,ts,jsx,tsx}",
-//   ],
-//   theme: {
-//     extend: {
-//       colors: {
-//         'primary': '#003c90',
-//         'on-primary': '#ffffff',
-//         'primary-container': '#0f52ba',
-//         'surface': '#f7f9fb',
-//         'surface-container-low': '#f2f4f6',
-//         'surface-container-lowest': '#ffffff',
-//         'on-surface': '#191c1e',
-//         'on-surface-variant': '#434653',
-//         'outline-variant': '#c3c6d5',
-//         'outline': '#737784',
-//         'background': '#f7f9fb',
-//       },
-//       fontFamily: {
-//         'inter': ['Inter', 'sans-serif'],
-//       },
-//       fontSize: {
-//         'headline-lg': ['32px', { lineHeight: '40px', letterSpacing: '-0.01em', fontWeight: '600' }],
-//         'headline-md': ['24px', { lineHeight: '32px', fontWeight: '600' }],
-//         'title-lg': ['20px', { lineHeight: '28px', fontWeight: '600' }],
-//         'body-lg': ['16px', { lineHeight: '24px', fontWeight: '400' }],
-//         'body-md': ['14px', { lineHeight: '20px', fontWeight: '400' }],
-//         'label-md': ['12px', { lineHeight: '16px', letterSpacing: '0.05em', fontWeight: '500' }],
-//         'label-sm': ['11px', { lineHeight: '14px', fontWeight: '600' }],
-//       },
-//     },
-//   },
-//   plugins: [],
-// }
-
-
-
-
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class', // ✅ Add this for dark mode support
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        'primary': '#003c90',
-        'on-primary': '#ffffff',
-        'primary-container': '#0f52ba',
-        'surface': '#f7f9fb',
-        'surface-container-low': '#f2f4f6',
-        'surface-container-lowest': '#ffffff',
-        'on-surface': '#191c1e',
-        'on-surface-variant': '#434653',
-        'outline-variant': '#c3c6d5',
-        'outline': '#737784',
-        'background': '#f7f9fb',
-        // Dark mode colors
-        'dark-surface': '#0f1117',
-        'dark-surface-container': '#1a1d24',
-        'dark-surface-container-low': '#22262e',
-        'dark-on-surface': '#e8edf5',
-        'dark-on-surface-variant': '#a8adb8',
-        'dark-outline-variant': '#3f4249',
-        'dark-outline': '#7a7e89',
+        primary: "#003c90",
+        "on-primary": "#ffffff",
+        "primary-container": "#0f52ba",
+        surface: "#f7f9fb",
+        "surface-container-low": "#f2f4f6",
+        "surface-container-lowest": "#ffffff",
+        "on-surface": "#191c1e",
+        "on-surface-variant": "#434653",
+        "outline-variant": "#c3c6d5",
+        outline: "#737784",
+        background: "#f7f9fb",
+        
+        // Dark Mode Surface & Palette Tokens
+        "dark-surface": "#0f1117",
+        "dark-surface-container": "#1a1d24",
+        "dark-surface-container-low": "#22262e",
+        "dark-on-surface": "#e8edf5",
+        "dark-on-surface-variant": "#a8adb8",
+        "dark-outline-variant": "#3f4249",
+        "dark-outline": "#7a7e89",
       },
       fontFamily: {
-        'inter': ['Inter', 'sans-serif'],
+        inter: ["Inter", "sans-serif"],
       },
       fontSize: {
-        'headline-lg': ['32px', { lineHeight: '40px', letterSpacing: '-0.01em', fontWeight: '600' }],
-        'headline-md': ['24px', { lineHeight: '32px', fontWeight: '600' }],
-        'title-lg': ['20px', { lineHeight: '28px', fontWeight: '600' }],
-        'body-lg': ['16px', { lineHeight: '24px', fontWeight: '400' }],
-        'body-md': ['14px', { lineHeight: '20px', fontWeight: '400' }],
-        'label-md': ['12px', { lineHeight: '16px', letterSpacing: '0.05em', fontWeight: '500' }],
-        'label-sm': ['11px', { lineHeight: '14px', fontWeight: '600' }],
+        "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "600" }],
+        "headline-md": ["24px", { lineHeight: "32px", fontWeight: "600" }],
+        "title-lg": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+        "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" }],
+        "label-sm": ["11px", { lineHeight: "14px", fontWeight: "600" }],
       },
     },
   },
   plugins: [],
-}
+};

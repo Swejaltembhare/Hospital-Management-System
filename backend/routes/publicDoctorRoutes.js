@@ -1,5 +1,4 @@
 import express from "express";
-import { authenticate, authorize } from "../middleware/auth.js";
 import {
   getAllDoctors,
   getAvailableSlots,
@@ -7,18 +6,10 @@ import {
 
 const router = express.Router();
 
-router.get(
-  "/",
-  authenticate,
-  authorize("patient", "admin"),
-  getAllDoctors
-);
+// Public doctor directory lookup endpoint
+router.get("/", getAllDoctors);
 
-router.get(
-  "/available-slots/:doctorId",
-  authenticate,
-  authorize("patient", "admin"),
-  getAvailableSlots
-);
+// Public doctor available time slot query endpoint
+router.get("/available-slots/:doctorId", getAvailableSlots);
 
 export default router;

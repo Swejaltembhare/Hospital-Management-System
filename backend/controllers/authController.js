@@ -1,11 +1,10 @@
-// controllers/authController.js
 import User from "../models/User.js";
 import Patient from "../models/Patient.js";
 import Doctor from "../models/Doctor.js";
 import Admin from "../models/Admin.js";
 import { generateToken, logUserActivity } from "../utils/authHelpers.js";
 
-// Patient Registration
+// Register a new patient account and store personal profile data
 export const patientRegister = async (req, res) => {
   try {
     const {
@@ -69,13 +68,13 @@ export const patientRegister = async (req, res) => {
   }
 };
 
-// Patient Login
+// Authenticate patient login credentials and issue JWT auth token
 export const patientLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email, role: "patient" }).select(
-      "+password",
+      "+password"
     );
     if (!user) {
       return res.status(401).json({
@@ -127,31 +126,24 @@ export const patientLogin = async (req, res) => {
   }
 };
 
+// Authenticate doctor credentials and return associated medical profile
 export const doctorLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    console.log("========== DOCTOR LOGIN ==========");
-    console.log("Email:", email);
 
     const user = await User.findOne({
       email,
       role: "doctor",
     }).select("+password");
 
-    console.log("User Found:", user);
-
     if (!user) {
       return res.status(401).json({
         success: false,
-        error: "Doctor not found",
+        error: "Doctor account not found",
       });
     }
 
     const isPasswordValid = await user.comparePassword(password);
-
-    console.log("Password Match:", isPasswordValid);
-
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
@@ -160,9 +152,6 @@ export const doctorLogin = async (req, res) => {
     }
 
     const doctor = await Doctor.findOne({ user: user._id });
-
-    console.log("Doctor Profile:", doctor);
-
     if (!doctor) {
       return res.status(404).json({
         success: false,
@@ -184,7 +173,7 @@ export const doctorLogin = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Doctor login error:", error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -192,19 +181,15 @@ export const doctorLogin = async (req, res) => {
   }
 };
 
+// Authenticate system admin login credentials
 export const adminLogin = async (req, res) => {
   try {
-    console.log("========== ADMIN LOGIN ==========");
-    console.log("Request Body:", req.body);
-
     const { email, password } = req.body;
 
     const user = await User.findOne({
       email,
       role: "admin",
     }).select("+password");
-
-    console.log("User Found:", user);
 
     if (!user) {
       return res.status(401).json({
@@ -214,18 +199,12 @@ export const adminLogin = async (req, res) => {
     }
 
     const isPasswordValid = await user.comparePassword(password);
-
-    console.log("Entered Password:", password);
-    console.log("Password Match:", isPasswordValid);
-
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
         error: "Invalid credentials",
       });
     }
-
-    console.log("✅ Login Success");
 
     if (!user.isActive) {
       return res.status(403).json({
@@ -245,20 +224,23 @@ export const adminLogin = async (req, res) => {
       success: true,
       token,
       user,
+      admin,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Admin login error:", error);
     res.status(500).json({
       success: false,
       error: error.message,
     });
   }
 };
-// Logout
+
+// Log user activity on system logout
 export const logout = async (req, res) => {
   try {
-    if (req.user) {
-      await logUserActivity(req.user._id, "LOGOUT", { role: req.user.role });
+    const userId = req.user?._id || req.userId;
+    if (userId) {
+      await logUserActivity(userId, "LOGOUT", { role: req.user?.role });
     }
     res.json({
       success: true,
@@ -273,6 +255,7 @@ export const logout = async (req, res) => {
   }
 };
 
+// Register a new doctor account with medical qualifications
 export const doctorRegister = async (req, res) => {
   try {
     const {
@@ -286,14 +269,15 @@ export const doctorRegister = async (req, res) => {
       experience,
       consultationFee,
     } = req.body;
-    const existingUser = await User.findOne({ email });
 
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
         success: false,
         error: "Email already registered",
       });
     }
+
     const user = new User({
       fullName,
       email,
@@ -301,8 +285,8 @@ export const doctorRegister = async (req, res) => {
       phoneNumber,
       role: "doctor",
     });
-
     await user.save();
+
     const doctor = new Doctor({
       user: user._id,
       department,
@@ -311,10 +295,11 @@ export const doctorRegister = async (req, res) => {
       experience,
       consultationFee,
     });
-
     await doctor.save();
+
     const token = generateToken(user._id);
     await logUserActivity(user._id, "REGISTER", { role: "doctor" });
+
     return res.status(201).json({
       success: true,
       message: "Doctor registered successfully",
@@ -328,9 +313,7 @@ export const doctorRegister = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
-    console.error(error.stack);
-
+    console.error("Doctor registration error:", error);
     return res.status(500).json({
       success: false,
       error: error.message,
@@ -338,15 +321,12 @@ export const doctorRegister = async (req, res) => {
   }
 };
 
-// controllers/authController.js
-
-// ==================== UPDATE PROFILE ====================
+// Update profile parameters for logged-in user
 export const updateProfile = async (req, res) => {
   try {
     const { name, email, phone } = req.body;
-    const userId = req.user._id;
+    const userId = req.user?._id || req.userId;
 
-    // Check if email is already taken by another user
     if (email) {
       const existingUser = await User.findOne({
         email,
@@ -392,10 +372,11 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+// Change account password for verified active user
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.user._id;
+    const userId = req.user?._id || req.userId;
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
@@ -404,9 +385,7 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    // Get user with password
     const user = await User.findById(userId).select("+password");
-
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -414,9 +393,7 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    // Check current password
     const isMatch = await user.comparePassword(currentPassword);
-
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -438,10 +415,8 @@ export const changePassword = async (req, res) => {
       success: true,
       message: "Password updated successfully",
     });
-
   } catch (error) {
     console.error("Change password error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to update password",
@@ -450,6 +425,7 @@ export const changePassword = async (req, res) => {
   }
 };
 
+// Save appointment consultation duration and approval settings
 export const updateAppointmentSettings = async (req, res) => {
   try {
     const { consultationDuration, autoApprove } = req.body;

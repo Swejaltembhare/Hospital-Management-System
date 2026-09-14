@@ -19,8 +19,7 @@ import {
   FaGraduationCap,
   FaMoneyBillWave,
   FaChevronLeft,
-  FaChevronRight,
-  FaUser
+  FaChevronRight
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -63,6 +62,7 @@ const DoctorManagement = () => {
     ]
   });
 
+  // Fetch doctors and initialize search input focus on mount
   useEffect(() => {
     fetchDoctors();
     if (searchInputRef.current) {
@@ -70,6 +70,7 @@ const DoctorManagement = () => {
     }
   }, []);
 
+  // Retrieve doctors list from role-specific endpoint
   const fetchDoctors = async () => {
     try {
       setLoading(true);
@@ -88,8 +89,6 @@ const DoctorManagement = () => {
       ];
 
       setDepartments(uniqueDepts);
-
-      console.log(response.data);
     } catch (error) {
       console.error("Error fetching doctors:", error);
       toast.error("Failed to load doctors");
@@ -166,6 +165,7 @@ const DoctorManagement = () => {
     return true;
   };
 
+  // Submit new or updated doctor payload
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -174,7 +174,6 @@ const DoctorManagement = () => {
     }
 
     try {
-      // Clean the fullName - remove any "Dr." prefix if present
       const cleanedName = formData.fullName.replace(/^Dr\.\s*/i, "").trim();
 
       const doctorData = {
@@ -186,9 +185,6 @@ const DoctorManagement = () => {
         await adminAPI.updateDoctor(editingDoctor._id, doctorData);
         toast.success("Doctor updated successfully");
       } else {
-        console.log("========== FORM DATA ==========");
-        console.log(doctorData);
-        console.table(doctorData);
         await adminAPI.createDoctor(doctorData);
         toast.success("Doctor added successfully");
       }
@@ -197,16 +193,6 @@ const DoctorManagement = () => {
       resetForm();
       setShowModal(false);
     } catch (err) {
-      console.error("========== FULL ERROR ==========");
-      console.log("Status:", err.response?.status);
-      console.log("Response:", err.response?.data);
-      console.table(err.response?.data?.errors);
-
-      err.response?.data?.errors?.forEach((e) => {
-        console.log("Field:", e.field);
-        console.log("Message:", e.message);
-      });
-
       toast.error(err.response?.data?.message || "Something went wrong");
     }
   };
@@ -216,6 +202,7 @@ const DoctorManagement = () => {
     setShowDeleteModal(true);
   };
 
+  // Delete doctor entry by ID
   const handleDelete = async () => {
     if (!doctorToDelete) return;
 
@@ -353,10 +340,8 @@ const DoctorManagement = () => {
     return colors[department] || 'bg-emerald-100 text-emerald-800 border-emerald-200';
   };
 
-  // Helper function to clean doctor name
   const cleanDoctorName = (name) => {
     if (!name) return "Unknown";
-    // Remove "Dr." prefix if present
     return name.replace(/^Dr\.\s*/i, "");
   };
 
@@ -405,47 +390,46 @@ const DoctorManagement = () => {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-teal-50/30">
-      <div className="w-full px-3 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Header Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative mb-6 sm:mb-8"
-        >
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="w-full min-h-screen bg-slate-50/60 pb-12 font-sans">
+      <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 space-y-6">
+        
+        {/* Doctor Management Hero Banner */}
+        <div className="w-full bg-emerald-700 text-white rounded-3xl p-6 sm:p-8 shadow-md relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 {isPatient ? "Find Doctors" : "Doctors Management"}
               </h1>
-              <p className="text-slate-500 mt-1 text-sm font-medium">
+              <p className="text-emerald-100 text-xs sm:text-sm mt-1.5 font-medium">
                 {isPatient
-                  ? "Find and book appointments with doctors"
-                  : "Manage doctors, departments, and consultations"}
+                  ? "Find and book appointments with specialized medical professionals."
+                  : "Manage doctors, departments, availability, and consultation fees."}
               </p>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.02, y: -2 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                resetForm();
-                setShowModal(true);
-              }}
-              className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl flex items-center gap-2 shadow-lg shadow-teal-600/20 hover:shadow-xl hover:shadow-teal-600/30 transition-all duration-300 font-medium text-sm sm:text-base w-full sm:w-auto justify-center"
-            >
-              <FaPlus className="text-sm" />
-              <span>Add Doctor</span>
-            </motion.button>
+            {!isPatient && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  resetForm();
+                  setShowModal(true);
+                }}
+                className="bg-white text-emerald-800 hover:bg-emerald-50 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl flex items-center gap-2 shadow-md transition-all duration-300 font-bold text-xs sm:text-sm cursor-pointer whitespace-nowrap"
+              >
+                <FaPlus className="text-xs sm:text-sm" />
+                <span>Add Doctor</span>
+              </motion.button>
+            )}
           </div>
-        </motion.div>
+          <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-xl pointer-events-none" />
+        </div>
 
-        {/* Statistics Cards */}
+        {/* Doctor Counter Metric Grid */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8"
+          className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
         >
           {[
             { 
@@ -502,12 +486,12 @@ const DoctorManagement = () => {
           ))}
         </motion.div>
 
-        {/* Search and Filter Card */}
+        {/* Filter and Search Controls Toolbar */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow duration-300 mb-6 sm:mb-8 border border-white/50"
+          className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-100"
         >
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4">
             <div className="md:col-span-5 relative">
@@ -520,7 +504,7 @@ const DoctorManagement = () => {
                 placeholder="Search by name, specialization, or department..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm placeholder:text-slate-400"
+                className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm placeholder:text-slate-400"
                 aria-label="Search doctors"
               />
             </div>
@@ -528,7 +512,7 @@ const DoctorManagement = () => {
               <select
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm text-slate-700 cursor-pointer"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 sm:py-3 px-3 sm:px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm text-slate-700 cursor-pointer"
                 aria-label="Filter by department"
               >
                 <option value="">All Departments</option>
@@ -550,25 +534,22 @@ const DoctorManagement = () => {
                     searchInputRef.current.focus();
                   }
                 }}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 text-xs sm:text-sm font-medium"
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 transition-all duration-200 text-xs sm:text-sm font-medium cursor-pointer"
                 aria-label="Clear all filters"
               >
                 <FaTimes className="text-xs" />
                 Clear
               </motion.button>
-              <div className="text-xs sm:text-sm text-slate-500 flex items-center px-3 sm:px-4 bg-slate-50 rounded-xl font-medium whitespace-nowrap">
-                {filteredDoctors.length}
-              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Doctors Table */}
+        {/* Doctors Data Table */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden border border-white/50"
+          className="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100"
         >
           {filteredDoctors.length === 0 ? (
             <motion.div 
@@ -578,19 +559,23 @@ const DoctorManagement = () => {
             >
               <div className="text-6xl sm:text-7xl mb-6">👨‍⚕️</div>
               <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">No Doctors Found</h3>
-              <p className="text-slate-500 mb-6 text-sm sm:text-base">Add your first doctor to begin managing your medical staff.</p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  resetForm();
-                  setShowModal(true);
-                }}
-                className="bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl flex items-center gap-2 mx-auto shadow-lg shadow-teal-600/20 hover:shadow-xl hover:shadow-teal-600/30 transition-all duration-300 font-medium text-sm sm:text-base"
-              >
-                <FaPlus />
-                <span>Add Your First Doctor</span>
-              </motion.button>
+              <p className="text-slate-500 mb-6 text-sm sm:text-base">
+                {!isPatient ? "Add your first doctor to begin managing your medical staff." : "No doctors currently match your criteria."}
+              </p>
+              {!isPatient && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    resetForm();
+                    setShowModal(true);
+                  }}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-2xl flex items-center gap-2 mx-auto shadow-md transition-all duration-300 font-medium text-sm sm:text-base cursor-pointer"
+                >
+                  <FaPlus />
+                  <span>Add Your First Doctor</span>
+                </motion.button>
+              )}
             </motion.div>
           ) : (
             <>
@@ -629,7 +614,7 @@ const DoctorManagement = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
                         whileHover={{ 
-                          backgroundColor: "rgba(13, 148, 136, 0.04)",
+                          backgroundColor: "rgba(16, 185, 129, 0.04)",
                           transition: { duration: 0.2 }
                         }}
                         className="hover:shadow-sm transition-all duration-200"
@@ -637,14 +622,11 @@ const DoctorManagement = () => {
                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11">
-                              <div className="h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-md shadow-teal-200/50">
-                                <span className="text-white font-semibold text-xs sm:text-sm">
-                                  {doctor.user?.fullName?.charAt(0) || "D"}
-                                </span>
+                              <div className="h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-emerald-600 flex items-center justify-center text-white font-semibold text-xs sm:text-sm">
+                                {doctor.user?.fullName?.charAt(0) || "D"}
                               </div>
                             </div>
                             <div className="ml-2 sm:ml-3 min-w-0">
-                              {/* ✅ FIXED: Clean doctor name */}
                               <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
                                 Dr. {cleanDoctorName(doctor.user?.fullName)}
                               </div>
@@ -666,7 +648,7 @@ const DoctorManagement = () => {
                           ₹{doctor.consultationFee}
                         </td>
                         <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
-                          <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
+                          <span className="inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <FaCalendarAlt className="mr-1 text-xs" />
                             {doctor.experience} yrs
                           </span>
@@ -689,32 +671,36 @@ const DoctorManagement = () => {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => handleViewDoctor(doctor)}
-                              className="p-1.5 sm:p-2 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-lg transition-all duration-200"
+                              className="p-1.5 sm:p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-all duration-200 cursor-pointer"
                               title="View Doctor"
                               aria-label={`View Dr. ${cleanDoctorName(doctor.user?.fullName)}`}
                             >
                               <FaEye size={12} className="sm:w-3.5 sm:h-3.5" />
                             </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => handleEdit(doctor)}
-                              className="p-1.5 sm:p-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-all duration-200"
-                              title="Edit Doctor"
-                              aria-label={`Edit Dr. ${cleanDoctorName(doctor.user?.fullName)}`}
-                            >
-                              <FaEdit size={12} className="sm:w-3.5 sm:h-3.5" />
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => confirmDelete(doctor)}
-                              className="p-1.5 sm:p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all duration-200"
-                              title="Delete Doctor"
-                              aria-label={`Delete Dr. ${cleanDoctorName(doctor.user?.fullName)}`}
-                            >
-                              <FaTrash size={12} className="sm:w-3.5 sm:h-3.5" />
-                            </motion.button>
+                            {!isPatient && (
+                              <>
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={() => handleEdit(doctor)}
+                                  className="p-1.5 sm:p-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-all duration-200 cursor-pointer"
+                                  title="Edit Doctor"
+                                  aria-label={`Edit Dr. ${cleanDoctorName(doctor.user?.fullName)}`}
+                                >
+                                  <FaEdit size={12} className="sm:w-3.5 sm:h-3.5" />
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={() => confirmDelete(doctor)}
+                                  className="p-1.5 sm:p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all duration-200 cursor-pointer"
+                                  title="Delete Doctor"
+                                  aria-label={`Delete Dr. ${cleanDoctorName(doctor.user?.fullName)}`}
+                                >
+                                  <FaTrash size={12} className="sm:w-3.5 sm:h-3.5" />
+                                </motion.button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </motion.tr>
@@ -723,89 +709,7 @@ const DoctorManagement = () => {
                 </table>
               </div>
 
-              {/* Mobile Cards View */}
-              <div className="sm:hidden divide-y divide-slate-100">
-                {paginatedDoctors.map((doctor) => (
-                  <motion.div
-                    key={`mobile-${doctor._id}`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="p-4 hover:bg-teal-50/30 transition-colors"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-md shadow-teal-200/50 flex-shrink-0">
-                          <span className="text-white font-semibold text-sm">
-                            {doctor.user?.fullName?.charAt(0) || "D"}
-                          </span>
-                        </div>
-                        <div>
-                          {/* ✅ FIXED: Clean doctor name */}
-                          <div className="text-sm font-semibold text-slate-900">
-                            Dr. {cleanDoctorName(doctor.user?.fullName)}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {doctor.specialization}
-                          </div>
-                        </div>
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-                        doctor.isAvailable !== false 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                          : 'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full mr-1 ${
-                          doctor.isAvailable !== false ? 'bg-emerald-500' : 'bg-red-500'
-                        }`}></span>
-                        {doctor.isAvailable !== false ? 'Available' : 'Unavailable'}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getDepartmentColor(doctor.department)}`}>
-                        {doctor.department}
-                      </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
-                        <FaCalendarAlt className="mr-1 text-xs" />
-                        {doctor.experience} yrs
-                      </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-50 text-slate-700 border border-slate-200">
-                        ₹{doctor.consultationFee}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex items-center justify-end gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleViewDoctor(doctor)}
-                        className="p-2 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-lg transition-colors"
-                        title="View"
-                      >
-                        <FaEye size={12} />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleEdit(doctor)}
-                        className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <FaEdit size={12} />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => confirmDelete(doctor)}
-                        className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <FaTrash size={12} />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Pagination */}
+              {/* Table Pagination Controls */}
               {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-3 sm:px-6 py-3 sm:py-4 border-t border-slate-100">
                   <p className="text-xs sm:text-sm text-slate-500">
@@ -817,7 +721,7 @@ const DoctorManagement = () => {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
-                      className="p-1.5 sm:p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 sm:p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       aria-label="Previous page"
                     >
                       <FaChevronLeft size={12} className="sm:w-3.5 sm:h-3.5" />
@@ -827,9 +731,9 @@ const DoctorManagement = () => {
                         <button
                           key={i}
                           onClick={() => setCurrentPage(i + 1)}
-                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
                             currentPage === i + 1
-                              ? 'bg-teal-600 text-white'
+                              ? 'bg-emerald-700 text-white'
                               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                           }`}
                           aria-label={`Page ${i + 1}`}
@@ -844,7 +748,7 @@ const DoctorManagement = () => {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
-                      className="p-1.5 sm:p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 sm:p-2 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       aria-label="Next page"
                     >
                       <FaChevronRight size={12} className="sm:w-3.5 sm:h-3.5" />
@@ -857,7 +761,7 @@ const DoctorManagement = () => {
         </motion.div>
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Add / Edit Doctor Modal Form */}
       <AnimatePresence>
         {showModal && (
           <motion.div
@@ -886,7 +790,7 @@ const DoctorManagement = () => {
                     whileHover={{ rotate: 90 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={handleCloseModal}
-                    className="text-slate-400 hover:text-slate-600 transition-colors duration-200 p-2 hover:bg-slate-100 rounded-xl"
+                    className="text-slate-400 hover:text-slate-600 transition-colors duration-200 p-2 hover:bg-slate-100 rounded-xl cursor-pointer"
                     aria-label="Close modal"
                   >
                     <FaTimes size={18} className="sm:w-5 sm:h-5" />
@@ -906,7 +810,7 @@ const DoctorManagement = () => {
                         onChange={handleInputChange}
                         required
                         placeholder="e.g., Swejal Tembhare"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                       <p className="text-xs text-slate-400 mt-1">Don't add "Dr." prefix, it will be added automatically</p>
@@ -921,7 +825,7 @@ const DoctorManagement = () => {
                         value={formData.email}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -935,7 +839,7 @@ const DoctorManagement = () => {
                         value={formData.phoneNumber}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -949,7 +853,7 @@ const DoctorManagement = () => {
                         value={formData.password}
                         onChange={handleInputChange}
                         required={!editingDoctor}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required={!editingDoctor}
                       />
                     </div>
@@ -963,7 +867,7 @@ const DoctorManagement = () => {
                         value={formData.department}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -977,7 +881,7 @@ const DoctorManagement = () => {
                         value={formData.specialization}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -991,7 +895,7 @@ const DoctorManagement = () => {
                         value={formData.qualification}
                         onChange={handleInputChange}
                         required
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -1006,7 +910,7 @@ const DoctorManagement = () => {
                         onChange={handleInputChange}
                         required
                         min="0"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
@@ -1021,17 +925,17 @@ const DoctorManagement = () => {
                         onChange={handleInputChange}
                         required
                         min="0"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-sm"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-sm"
                         aria-required="true"
                       />
                     </div>
                   </div>
 
-                  {/* Doctor Availability Section */}
+                  {/* Dynamic Shift Schedule Slots */}
                   <div className="border-t border-slate-200 pt-5 sm:pt-6 mt-2">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                       <h3 className="text-base sm:text-lg font-semibold text-slate-800 flex items-center gap-2">
-                        <FaRegClock className="text-teal-600" />
+                        <FaRegClock className="text-emerald-600" />
                         Doctor Availability
                       </h3>
                       <motion.button
@@ -1039,7 +943,7 @@ const DoctorManagement = () => {
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={addAvailabilitySlot}
-                        className="bg-teal-50 hover:bg-teal-100 text-teal-600 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex items-center gap-2 transition-all duration-200 text-xs sm:text-sm font-medium border border-teal-200 w-full sm:w-auto justify-center"
+                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl flex items-center gap-2 transition-all duration-200 text-xs sm:text-sm font-medium border border-emerald-200 w-full sm:w-auto justify-center cursor-pointer"
                       >
                         <FaPlus size={11} className="sm:w-3.5 sm:h-3.5" />
                         Add Availability
@@ -1056,7 +960,7 @@ const DoctorManagement = () => {
                             <select
                               value={slot.day}
                               onChange={(e) => handleAvailabilityChange(index, "day", e.target.value)}
-                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-xs sm:text-sm"
+                              className="w-full bg-white border border-slate-200 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-xs sm:text-sm cursor-pointer"
                               required
                             >
                               <option value="">Select Day</option>
@@ -1078,7 +982,7 @@ const DoctorManagement = () => {
                                 type="time"
                                 value={slot.startTime}
                                 onChange={(e) => handleAvailabilityChange(index, "startTime", e.target.value)}
-                                className="w-full bg-white border border-slate-200 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-xs sm:text-sm"
+                                className="w-full bg-white border border-slate-200 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-xs sm:text-sm"
                                 required
                               />
                             </div>
@@ -1090,7 +994,7 @@ const DoctorManagement = () => {
                                 type="time"
                                 value={slot.endTime}
                                 onChange={(e) => handleAvailabilityChange(index, "endTime", e.target.value)}
-                                className="w-full bg-white border border-slate-200 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200 text-xs sm:text-sm"
+                                className="w-full bg-white border border-slate-200 rounded-lg py-1.5 sm:py-2 px-2 sm:px-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-200 text-xs sm:text-sm"
                                 required
                               />
                             </div>
@@ -1102,7 +1006,7 @@ const DoctorManagement = () => {
                               type="checkbox"
                               checked={slot.isAvailable}
                               onChange={(e) => handleAvailabilityChange(index, "isAvailable", e.target.checked)}
-                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
+                              className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500 cursor-pointer"
                             />
                             Available
                           </label>
@@ -1112,7 +1016,7 @@ const DoctorManagement = () => {
                               whileTap={{ scale: 0.9 }}
                               type="button"
                               onClick={() => removeAvailabilitySlot(index)}
-                              className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-lg transition-colors"
+                              className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                               aria-label="Remove availability slot"
                             >
                               <FaTrash size={12} className="sm:w-3.5 sm:h-3.5" />
@@ -1132,7 +1036,7 @@ const DoctorManagement = () => {
                       whileTap={{ scale: 0.98 }}
                       type="button"
                       onClick={handleCloseModal}
-                      className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 px-6 rounded-xl transition-all duration-200 font-medium text-sm"
+                      className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 px-6 rounded-xl transition-all duration-200 font-medium text-sm cursor-pointer"
                     >
                       Cancel
                     </motion.button>
@@ -1140,7 +1044,7 @@ const DoctorManagement = () => {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       type="submit"
-                      className="w-full sm:w-auto bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white py-2.5 px-8 rounded-xl transition-all duration-200 font-medium shadow-lg shadow-teal-600/20 hover:shadow-xl hover:shadow-teal-600/30 text-sm"
+                      className="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white py-2.5 px-8 rounded-xl transition-all duration-200 font-medium shadow-md text-sm cursor-pointer"
                     >
                       {editingDoctor ? "Update Doctor" : "Save Doctor"}
                     </motion.button>
@@ -1152,7 +1056,7 @@ const DoctorManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Alert Modal */}
       <AnimatePresence>
         {showDeleteModal && doctorToDelete && (
           <motion.div
@@ -1187,7 +1091,7 @@ const DoctorManagement = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setShowDeleteModal(false)}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors font-medium text-sm"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors font-medium text-sm cursor-pointer"
                   >
                     Cancel
                   </motion.button>
@@ -1195,7 +1099,7 @@ const DoctorManagement = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleDelete}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-medium shadow-lg shadow-red-600/20 text-sm"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors font-medium shadow-md text-sm cursor-pointer"
                   >
                     Delete
                   </motion.button>
@@ -1206,7 +1110,7 @@ const DoctorManagement = () => {
         )}
       </AnimatePresence>
 
-      {/* Side Drawer - Doctor Details */}
+      {/* Doctor Detailed Overview Drawer */}
       <AnimatePresence>
         {showSideDrawer && selectedDoctor && (
           <>
@@ -1236,21 +1140,18 @@ const DoctorManagement = () => {
                     whileHover={{ rotate: 90 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setShowSideDrawer(false)}
-                    className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-slate-100 rounded-xl"
+                    className="text-slate-400 hover:text-slate-600 transition-colors p-2 hover:bg-slate-100 rounded-xl cursor-pointer"
                     aria-label="Close drawer"
                   >
                     <FaTimes size={18} className="sm:w-5 sm:h-5" />
                   </motion.button>
                 </div>
 
-                <div className="flex items-center gap-4 mb-6 p-4 bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl">
-                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-200/50 flex-shrink-0">
-                    <span className="text-white text-xl sm:text-2xl font-bold">
-                      {selectedDoctor.user?.fullName?.charAt(0) || "D"}
-                    </span>
+                <div className="flex items-center gap-4 mb-6 p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100">
+                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-xl sm:text-2xl shadow-md flex-shrink-0">
+                    {selectedDoctor.user?.fullName?.charAt(0) || "D"}
                   </div>
                   <div>
-                    {/* ✅ FIXED: Clean doctor name */}
                     <h3 className="text-base sm:text-xl font-bold text-slate-900">
                       Dr. {cleanDoctorName(selectedDoctor.user?.fullName)}
                     </h3>
@@ -1314,32 +1215,34 @@ const DoctorManagement = () => {
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-slate-100">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setShowSideDrawer(false);
-                        handleEdit(selectedDoctor);
-                      }}
-                      className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl transition-colors font-medium flex items-center justify-center gap-2 text-sm"
-                    >
-                      <FaEdit size={14} />
-                      Edit Doctor
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setShowSideDrawer(false);
-                        confirmDelete(selectedDoctor);
-                      }}
-                      className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl transition-colors font-medium flex items-center justify-center gap-2 text-sm"
-                    >
-                      <FaTrash size={14} />
-                      Delete
-                    </motion.button>
-                  </div>
+                  {!isPatient && (
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 border-t border-slate-100">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setShowSideDrawer(false);
+                          handleEdit(selectedDoctor);
+                        }}
+                        className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl transition-colors font-medium flex items-center justify-center gap-2 text-sm cursor-pointer"
+                      >
+                        <FaEdit size={14} />
+                        Edit Doctor
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setShowSideDrawer(false);
+                          confirmDelete(selectedDoctor);
+                        }}
+                        className="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl transition-colors font-medium flex items-center justify-center gap-2 text-sm cursor-pointer"
+                      >
+                        <FaTrash size={14} />
+                        Delete
+                      </motion.button>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
