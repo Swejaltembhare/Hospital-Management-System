@@ -38,7 +38,6 @@ app.use(
     origin: [
       'http://localhost:5173',
       'https://hospital-management-system-swejal.vercel.app',
-      'https://hospital-management-system-sigma-coral.vercel.app',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
