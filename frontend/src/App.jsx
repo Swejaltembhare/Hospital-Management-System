@@ -12,7 +12,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import AdminLayout from "./layouts/AdminLayout";
-import PatientLayout from "./layouts/patientLayout";
+import PatientLayout from "./layouts/PatientLayout";;
 import DoctorLayout from "./layouts/DoctorLayout";
 
 // Pages
