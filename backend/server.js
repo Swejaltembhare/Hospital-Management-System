@@ -38,7 +38,6 @@ app.use(
     origin: [
       'http://localhost:5173',
       'https://hospital-management-system-swejal.vercel.app',
-      'https://hospital-management-system-sigma-coral.vercel.app',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -46,15 +45,6 @@ app.use(
     optionsSuccessStatus: 200,
   })
 );
-
-// Handle preflight requests explicitly to prevent Vercel redirect issues (using regex to avoid path-to-regexp error)
-app.options(/.*/, (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
 
 // Apply rate limiting middleware to prevent API abuse and brute-force attacks
 const limiter = rateLimit({

@@ -58,6 +58,15 @@ const Login = () => {
 
   return (
     <div className="w-full min-h-[calc(100vh-4rem)] bg-slate-50 flex items-center justify-center py-10 px-4 sm:px-6 lg:px-8 font-sans">
+      
+      {/* Inline Style to remove Native Browser Password Revealer Eye Icons (Edge/Chrome) */}
+      <style>{`
+        input::-ms-reveal,
+        input::-ms-clear {
+          display: none !important;
+        }
+      `}</style>
+
       <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 space-y-6">
 
         {/* Brand Header */}
@@ -131,7 +140,7 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Password */}
+          {/* Password Input with Single Eye Toggle */}
           <div className="space-y-1">
             <label className="block text-xs font-bold text-slate-700">
               Password <span className="text-rose-500">*</span>
@@ -150,7 +159,7 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5 focus:outline-none"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
