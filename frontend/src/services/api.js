@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Base API Axios Configuration Instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: (import.meta.env.VITE_API_BASE_URL || "https://hospital-management-system-mf37.onrender.com") + "/api",
   headers: {
     "Content-Type": "application/json",
   },
