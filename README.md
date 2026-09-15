@@ -33,7 +33,9 @@ MediCare is a full-stack web application designed to digitize and streamline hos
 
 Hospital-Management-System/
 ├── backend/     # APIs and server logic
+
 ├── frontend/    # React frontend
+
 └── README.md
 
 ## Installation & Setup
