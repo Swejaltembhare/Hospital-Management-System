@@ -38,6 +38,7 @@ app.use(
     origin: [
       'http://localhost:5173',
       'https://hospital-management-system-flax-three.vercel.app',
+      'https://hospital-management-system-swejal.vercel.app', // <-- YEH WALA URL ADD KAREIN
       process.env.FRONTEND_URL
     ].filter(Boolean),
     credentials: true,
