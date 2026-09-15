@@ -11,7 +11,6 @@ import {
   CalendarCheck,
   CheckCircle2,
   XCircle,
-  FileText,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -63,12 +62,6 @@ const MyAppointments = () => {
     navigate("/patient/doctors", {
       state: { reschedule: true, appointment },
     });
-  };
-
-  const handleViewPrescription = (appointmentId) => {
-    if (!appointmentId) return;
-    // Redirects directly to patient prescription detail page
-    navigate(`/patient/prescriptions?appointmentId=${appointmentId}`);
   };
 
   const getStatusConfig = (status) => {
@@ -312,15 +305,6 @@ const MyAppointments = () => {
                             </button>
                           )}
                         </>
-                      )}
-
-                      {appointment.status === "completed" && (
-                        <button
-                          onClick={() => handleViewPrescription(appointment._id)}
-                          className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-emerald-100"
-                        >
-                          <FileText className="w-3.5 h-3.5" /> Prescription
-                        </button>
                       )}
                     </div>
                   </div>
