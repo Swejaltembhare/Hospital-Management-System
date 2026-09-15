@@ -37,8 +37,9 @@ app.use(
   cors({
     origin: [
       'http://localhost:5173',
-      'https://hospital-management-system-swejal.vercel.app',
-    ],
+      'https://hospital-management-system-flax-three.vercel.app',
+      process.env.FRONTEND_URL
+    ].filter(Boolean),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
