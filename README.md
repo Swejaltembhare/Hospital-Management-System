@@ -1,46 +1,111 @@
-# 🏥 MediCare - Hospital Management System
+## MediCare
 
-![React](https://img.shields.io/badge/Frontend-React_18-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Node.js](https://img.shields.io/badge/Backend-Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Express.js](https://img.shields.io/badge/Framework-Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind_CSS-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)
-![Vercel](https://img.shields.io/badge/Deployment-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+MediCare is a full-stack web application designed to digitize and streamline hospital operations. The platform provides role-based portals for Patients, Doctors, and Administrators to manage appointments, medical records, billing, lab tests, and real-time analytics through a centralized and secure digital system.
 
-A feature-rich, full-stack MERN application built to streamline healthcare operations, doctor schedules, and patient appointment bookings securely.
+## Features
 
-🌐 **Live Demo**: [https://hospital-management-system-swejal.vercel.app/](https://hospital-management-system-swejal.vercel.app/)  
-📂 **GitHub Repository**: [https://github.com/Swejaltembhare/Hospital-Management-System](https://github.com/Swejaltembhare/Hospital-Management-System)
+- Secure authentication with role-based access control (Patient, Doctor, Admin)
+- Admin dashboard with real-time hospital statistics and booking analytics
+- Doctor portal for managing appointments, schedules, and patient histories
+- Patient portal for booking appointments and viewing prescriptions
+- Lab test tracking and management
+- Billing and invoice generation
+- System audit logs for security and compliance
+- Data export functionality
+- Public doctor directory for patients
+- Responsive and intuitive user interface
 
----
+## Tech Stack
 
-## ✨ Features
+| Technology | Purpose |
+|---|---|
+| React.js | Frontend User Interface |
+| Vite | Frontend Build Tool |
+| Node.js | Backend Runtime |
+| Express.js | Server Framework |
+| MongoDB | Database |
+| Tailwind CSS | Styling |
+| Lucide React | Icons |
+| Axios | HTTP Client |
+| JWT | Authentication |
 
-* **🛡️ Admin Dashboard**: Manage doctors, patients, view real-time stats, and monitor booking analytics.
-* **👨‍⚕️ Doctor Portal**: Track daily appointments, update schedule availability, and view patient medical histories.
-* **👤 Patient Portal**: Instant appointment booking, real-time schedule status tracking, and view prescriptions.
-* **🔐 Secure Authentication**: Role-Based Access Control (RBAC) protected with JWT & HTTP-only cookies.
+## Project Structure
 
----
+Hospital-Management-System/
+├── backend/     # APIs and server logic
+├── frontend/    # React frontend
+└── README.md
 
-## 🛠️ Tech Stack
+## Installation & Setup
 
-* **Frontend**: React.js, Vite, Tailwind CSS, Lucide-React, Axios
-* **Backend**: Node.js, Express.js, JWT Authentication
-* **Database**: MongoDB & Mongoose ORM
-* **Deployment**: Vercel
+1. Clone the repository
 
----
+git clone https://github.com/Swejaltembhare/Hospital-Management-System.git
+cd Hospital-Management-System
 
-## 🚀 Local Setup & Installation Guide
+2. Install dependencies
 
-Open VS Code Terminal (`Ctrl + ~`) and follow these steps to run the project locally.
+Backend
+
+cd backend
+npm install
+
+Frontend
+
+cd frontend
+npm install
+
+## Run the Project
+
+Start Backend
+
 cd backend
 npm run dev
+
+Start Frontend
+
 cd frontend
 npm run dev
 
-### 1. Clone Repository
-```bash
-git clone [https://github.com/Swejaltembhare/Hospital-Management-System.git](https://github.com/Swejaltembhare/Hospital-Management-System.git)
-cd Hospital-Management-System
+## Environment Variables
+
+Create a .env file inside the backend folder:
+
+PORT=5000
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_secret_key
+FRONTEND_URL=http://localhost:5173
+
+## API Endpoints
+
+| Route | Description |
+|---|---|
+| /api/auth | Authentication (register, login, logout) |
+| /api/admin | Admin operations and statistics |
+| /api/doctors | Public doctor directory |
+| /api/doctor | Doctor portal routes |
+| /api/patients | Patient management |
+| /api/lab-tests | Lab test records |
+| /api/invoices | Billing and invoices |
+| /api/analytics | Hospital analytics |
+| /api/audit-logs | System audit logs |
+| /api/export | Data exports |
+
+## Future Improvements
+
+- Mobile responsiveness
+- Email and SMS appointment reminders
+- Advanced analytics and reporting
+- Prescription PDF generation
+
+## Contributors
+
+Swejal Tembhare
+
+GitHub: https://github.com/Swejaltembhare
+
+Web Link: https://hospital-management-system-swejal.vercel.app/
+
+## Support
+
+If you like this project, give it a ⭐ on GitHub.
