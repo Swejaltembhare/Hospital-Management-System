@@ -65,6 +65,12 @@ const MyAppointments = () => {
     });
   };
 
+  const handleViewPrescription = (appointmentId) => {
+    if (!appointmentId) return;
+    // Redirects directly to patient prescription detail page
+    navigate(`/patient/prescriptions?appointmentId=${appointmentId}`);
+  };
+
   const getStatusConfig = (status) => {
     const configs = {
       pending: { color: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock, label: "Pending" },
@@ -310,7 +316,7 @@ const MyAppointments = () => {
 
                       {appointment.status === "completed" && (
                         <button
-                          onClick={() => navigate(`/patient/prescriptions/${appointment._id}`)}
+                          onClick={() => handleViewPrescription(appointment._id)}
                           className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-emerald-100"
                         >
                           <FileText className="w-3.5 h-3.5" /> Prescription
